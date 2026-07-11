@@ -111,6 +111,27 @@ export interface WeaponsTable {
   updated_at: string
 }
 
+export interface ArmorTable {
+  id: Generated<number>
+  name: string
+  description: string
+  category: string
+  rarity: string
+  icon_id: number | null
+  defense: number
+  magic_resist: number
+  value: number
+  weight: number
+  required_level: number
+  required_profession: string | null
+  bonuses: string
+  scripts: string
+  flags: string
+  checks: string
+  created_at: string
+  updated_at: string
+}
+
 export interface WorldZonesTable {
   zone_id: string
   name: string
@@ -130,6 +151,7 @@ export interface Database {
   icon_tags: IconTagsTable
   items: ItemsTable
   weapons: WeaponsTable
+  armor: ArmorTable
   world_entities: WorldEntitiesTable
   world_zones: WorldZonesTable
 }

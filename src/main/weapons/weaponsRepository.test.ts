@@ -57,4 +57,15 @@ describe('WeaponsRepository', () => {
     expect(updated).toHaveLength(2)
     expect(updated.every((w) => w.rarity === 'epic')).toBe(true)
   })
+
+  it('restoreWithId re-inserts a full snapshot with its original id (undo/redo support)', async () => {
+    const { repository } = await setup()
+    const weapon = await repository.create({ ...createEmptyWeaponInput(), name: 'Daga', damage: 5 })
+    await repository.delete(weapon.id)
+    expect(await repository.get(weapon.id)).toBeUndefined()
+
+    const restored = await repository.restoreWithId(weapon)
+    expect(restored).toEqual(weapon)
+    expect(await repository.get(weapon.id)).toEqual(weapon)
+  })
 })

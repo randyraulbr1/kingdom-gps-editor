@@ -13,7 +13,8 @@ describe('migrationRunner', () => {
       '003_items',
       '004_world_entities',
       '005_world_zones',
-      '006_weapons'
+      '006_weapons',
+      '007_armor'
     ])
 
     const secondRun = await runMigrations(client)
@@ -29,6 +30,7 @@ describe('migrationRunner', () => {
         'icon_tags',
         'items',
         'weapons',
+        'armor',
         'world_entities',
         'world_zones'
       ])

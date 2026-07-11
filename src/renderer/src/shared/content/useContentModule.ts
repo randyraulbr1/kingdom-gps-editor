@@ -4,8 +4,8 @@ import type { ContentStoreHook } from './createContentStore'
 
 /**
  * Acciones CRUD de un módulo de contenido, sin efectos. Lo usan tanto el panel
- * (para crear/borrar) como el inspector (para actualizar). Generalización de
- * `useItems` sin la parte de carga automática.
+ * (para crear/borrar) como el inspector (para actualizar). Generalización del
+ * hook a mano que tenía Objetos antes de migrarse a este framework.
  */
 export function useContentActions<T extends ContentRecord, TInput>(
   useStore: ContentStoreHook<T>,
@@ -68,7 +68,8 @@ export function useContentActions<T extends ContentRecord, TInput>(
 /**
  * Carga automática: recarga (debounced) cuando cambia la query, trae las
  * categorías, y escucha el evento global `kgps:refresh`. Se llama UNA vez, en el
- * panel del módulo. Generalización de la parte de efectos de `useItems`.
+ * panel del módulo. Generalización de la parte de efectos del hook a mano que
+ * tenía Objetos antes de migrarse a este framework.
  */
 export function useContentAutoLoad<T extends ContentRecord, TInput>(
   useStore: ContentStoreHook<T>,

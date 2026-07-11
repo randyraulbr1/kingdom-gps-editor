@@ -1,7 +1,9 @@
 import path from 'node:path'
 import { jsonExporter } from './exporters/JsonExporter'
 import type { IconLibraryRepository } from '../icons/iconLibraryRepository'
+import type { ArmorRepository } from '../armor/armorRepository'
 import type { ItemsRepository } from '../items/itemsRepository'
+import type { WeaponsRepository } from '../weapons/weaponsRepository'
 import type { WorldEntityRepository } from '../worldEditor/worldEntityRepository'
 import type { WorldZoneRepository } from '../worldEditor/worldZoneRepository'
 import type { ExportRunResult } from '@shared-types/exporter'
@@ -27,6 +29,32 @@ export async function exportItems(repository: ItemsRepository, projectPath: stri
   const start = Date.now()
   const { items } = await repository.query({ limit: 1_000_000, offset: 0 })
   const targetPath = path.join(projectPath, 'export', 'items.json')
+  await jsonExporter.run(items, targetPath)
+  return {
+    exporterId: jsonExporter.id,
+    outputPath: targetPath,
+    recordCount: items.length,
+    durationMs: Date.now() - start
+  }
+}
+
+export async function exportWeapons(repository: WeaponsRepository, projectPath: string): Promise<ExportRunResult> {
+  const start = Date.now()
+  const { items } = await repository.query({ limit: 1_000_000, offset: 0 })
+  const targetPath = path.join(projectPath, 'export', 'weapons.json')
+  await jsonExporter.run(items, targetPath)
+  return {
+    exporterId: jsonExporter.id,
+    outputPath: targetPath,
+    recordCount: items.length,
+    durationMs: Date.now() - start
+  }
+}
+
+export async function exportArmor(repository: ArmorRepository, projectPath: string): Promise<ExportRunResult> {
+  const start = Date.now()
+  const { items } = await repository.query({ limit: 1_000_000, offset: 0 })
+  const targetPath = path.join(projectPath, 'export', 'armor.json')
   await jsonExporter.run(items, targetPath)
   return {
     exporterId: jsonExporter.id,

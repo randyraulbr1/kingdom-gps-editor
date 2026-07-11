@@ -1,9 +1,13 @@
+import type { ArmorRepository } from '../armor/armorRepository'
 import type { IconLibraryRepository } from '../icons/iconLibraryRepository'
 import type { ItemsRepository } from '../items/itemsRepository'
+import type { WeaponsRepository } from '../weapons/weaponsRepository'
 import type { WorldEntityRepository } from '../worldEditor/worldEntityRepository'
 import type { ChangeLogService } from './changeLog'
 import type { ChangeLogEntry } from '@shared-types/commands'
+import type { Armor } from '@shared-types/armor'
 import type { Item } from '@shared-types/item'
+import type { Weapon } from '@shared-types/weapon'
 import type { WorldEntity, Position } from '@shared-types/world'
 
 /**
@@ -18,6 +22,8 @@ export class CommandBus {
     private changeLog: ChangeLogService,
     private iconRepository: IconLibraryRepository,
     private itemsRepository: ItemsRepository,
+    private weaponsRepository: WeaponsRepository,
+    private armorRepository: ArmorRepository,
     private worldEntityRepository: WorldEntityRepository
   ) {}
 
@@ -43,6 +49,50 @@ export class CommandBus {
 
   async recordItemBulkUpdate(before: Array<Item | undefined>, after: Item[]): Promise<void> {
     await this.changeLog.record({ moduleId: 'items', entityId: null, action: 'bulkUpdate', before, after })
+  }
+
+  async recordWeaponCreate(weapon: Weapon): Promise<void> {
+    await this.changeLog.record({
+      moduleId: 'weapons',
+      entityId: weapon.id,
+      action: 'create',
+      before: null,
+      after: weapon
+    })
+  }
+
+  async recordWeaponUpdate(before: Weapon, after: Weapon): Promise<void> {
+    await this.changeLog.record({ moduleId: 'weapons', entityId: after.id, action: 'update', before, after })
+  }
+
+  async recordWeaponDelete(weapon: Weapon): Promise<void> {
+    await this.changeLog.record({
+      moduleId: 'weapons',
+      entityId: weapon.id,
+      action: 'delete',
+      before: weapon,
+      after: null
+    })
+  }
+
+  async recordWeaponBulkUpdate(before: Array<Weapon | undefined>, after: Weapon[]): Promise<void> {
+    await this.changeLog.record({ moduleId: 'weapons', entityId: null, action: 'bulkUpdate', before, after })
+  }
+
+  async recordArmorCreate(armor: Armor): Promise<void> {
+    await this.changeLog.record({ moduleId: 'armor', entityId: armor.id, action: 'create', before: null, after: armor })
+  }
+
+  async recordArmorUpdate(before: Armor, after: Armor): Promise<void> {
+    await this.changeLog.record({ moduleId: 'armor', entityId: after.id, action: 'update', before, after })
+  }
+
+  async recordArmorDelete(armor: Armor): Promise<void> {
+    await this.changeLog.record({ moduleId: 'armor', entityId: armor.id, action: 'delete', before: armor, after: null })
+  }
+
+  async recordArmorBulkUpdate(before: Array<Armor | undefined>, after: Armor[]): Promise<void> {
+    await this.changeLog.record({ moduleId: 'armor', entityId: null, action: 'bulkUpdate', before, after })
   }
 
   async recordWorldEntityCreate(entity: WorldEntity): Promise<void> {
@@ -131,6 +181,54 @@ export class CommandBus {
     }
   }
 
+  private async applyWeaponState(entry: ChangeLogEntry, useAfter: boolean): Promise<void> {
+    if (entry.action === 'create') {
+      if (useAfter) {
+        await this.weaponsRepository.restoreWithId(entry.after as Weapon)
+      } else if (entry.entityId !== null) {
+        await this.weaponsRepository.delete(Number(entry.entityId))
+      }
+    } else if (entry.action === 'delete') {
+      if (useAfter) {
+        if (entry.entityId !== null) await this.weaponsRepository.delete(Number(entry.entityId))
+      } else {
+        await this.weaponsRepository.restoreWithId(entry.before as Weapon)
+      }
+    } else if (entry.action === 'update') {
+      const weapon = (useAfter ? entry.after : entry.before) as Weapon | null
+      if (weapon) await this.weaponsRepository.update(weapon.id, weapon)
+    } else if (entry.action === 'bulkUpdate') {
+      const weapons = (useAfter ? entry.after : entry.before) as Array<Weapon | null | undefined>
+      for (const weapon of weapons) {
+        if (weapon) await this.weaponsRepository.update(weapon.id, weapon)
+      }
+    }
+  }
+
+  private async applyArmorState(entry: ChangeLogEntry, useAfter: boolean): Promise<void> {
+    if (entry.action === 'create') {
+      if (useAfter) {
+        await this.armorRepository.restoreWithId(entry.after as Armor)
+      } else if (entry.entityId !== null) {
+        await this.armorRepository.delete(Number(entry.entityId))
+      }
+    } else if (entry.action === 'delete') {
+      if (useAfter) {
+        if (entry.entityId !== null) await this.armorRepository.delete(Number(entry.entityId))
+      } else {
+        await this.armorRepository.restoreWithId(entry.before as Armor)
+      }
+    } else if (entry.action === 'update') {
+      const armor = (useAfter ? entry.after : entry.before) as Armor | null
+      if (armor) await this.armorRepository.update(armor.id, armor)
+    } else if (entry.action === 'bulkUpdate') {
+      const pieces = (useAfter ? entry.after : entry.before) as Array<Armor | null | undefined>
+      for (const piece of pieces) {
+        if (piece) await this.armorRepository.update(piece.id, piece)
+      }
+    }
+  }
+
   private async applyWorldEntityState(entry: ChangeLogEntry, useAfter: boolean): Promise<void> {
     if (entry.entityId === null) return
     const worldId = String(entry.entityId)
@@ -164,6 +262,10 @@ export class CommandBus {
       await this.applyIconState(entry, useAfter)
     } else if (entry.moduleId === 'items') {
       await this.applyItemState(entry, useAfter)
+    } else if (entry.moduleId === 'weapons') {
+      await this.applyWeaponState(entry, useAfter)
+    } else if (entry.moduleId === 'armor') {
+      await this.applyArmorState(entry, useAfter)
     } else if (entry.moduleId === 'worldEditor') {
       await this.applyWorldEntityState(entry, useAfter)
     }

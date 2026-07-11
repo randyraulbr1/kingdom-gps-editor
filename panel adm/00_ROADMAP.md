@@ -29,12 +29,17 @@
 ✅ Editor de propiedades (Inspector ~20 campos, edición masiva, undo/redo, export)
 ⚪ Generación de iconos IA (Recraft) — pendiente: cola `icon_generation_jobs`, token `.env`
 
-### FASE 3b - Contenido en serie (framework + Armas) 🟡 EN MARCHA
+### FASE 3b - Contenido en serie (framework + Armas + Armaduras) ✅ UNIFICADA
 ✅ Framework de contenido genérico `shared/content/` (ContentGrid/List/Table, toolbar, store y panel genéricos)
 ✅ Módulo **Armas** completo sobre el framework (migración 006_weapons, repo, IPC, inspector con daño/velocidad/alcance/crítico)
-⚪ Migrar Objetos al framework (limpieza; hoy usa sus propios componentes)
-⚪ Undo/redo y exportación JSON para Armas (Objetos ya los tiene)
-⚪ Repetir el patrón para los 20 módulos restantes (Armaduras, NPC, Monstruos, …)
+✅ Undo/redo para Armas (CommandBus: create/update/delete/bulkUpdate, `restoreWithId`, mismo patrón que Objetos)
+✅ Exportación JSON para Armas (`export/weapons.json`, botón en la toolbar)
+✅ Módulo **Armaduras** completo sobre el framework (migración 007_armor, repo, IPC, undo/redo, export JSON,
+   inspector con defensa/resistencia mágica/slot) — reemplaza el placeholder anterior
+✅ **Objetos migrado al framework de contenido** (antes tenía sus propios ContentGrid/List/Table/Toolbar/hook/store
+   a mano; ahora usa `ContentModulePanel` + `createContentStore` + `useContentActions`, igual que Armas/Armaduras).
+   `ItemQuery.category` pasó a `string` para ser compatible con `ContentQueryBase` (mismo ajuste que Weapon/Armor).
+⚪ Repetir el patrón para los ~18 módulos restantes (Herramientas, Recursos, Comida, NPC, Monstruos, …)
 
 ### FASE 3 - Editor de Mundo 🟡 LOCAL COMPLETA (falta sync con servidor)
 ✅ Mapa (Leaflet + teselas reales; selector de estilo: oscuro/claro sin etiquetas, OSM, satélite)

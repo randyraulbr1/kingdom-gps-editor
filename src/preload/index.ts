@@ -46,9 +46,21 @@ const api: KingdomGpsApi = {
     bulkDelete: (ids) => ipcRenderer.invoke('weapons:bulkDelete', ids),
     listCategories: () => ipcRenderer.invoke('weapons:listCategories')
   },
+  armor: {
+    query: (params) => ipcRenderer.invoke('armor:query', params),
+    get: (id) => ipcRenderer.invoke('armor:get', id),
+    create: (data) => ipcRenderer.invoke('armor:create', data),
+    update: (id, patch) => ipcRenderer.invoke('armor:update', id, patch),
+    delete: (id) => ipcRenderer.invoke('armor:delete', id),
+    bulkUpdate: (ids, patch) => ipcRenderer.invoke('armor:bulkUpdate', ids, patch),
+    bulkDelete: (ids) => ipcRenderer.invoke('armor:bulkDelete', ids),
+    listCategories: () => ipcRenderer.invoke('armor:listCategories')
+  },
   export: {
     icons: () => ipcRenderer.invoke('export:icons'),
     items: () => ipcRenderer.invoke('export:items'),
+    weapons: () => ipcRenderer.invoke('export:weapons'),
+    armor: () => ipcRenderer.invoke('export:armor'),
     world: () => ipcRenderer.invoke('export:world')
   },
   commandHistory: {

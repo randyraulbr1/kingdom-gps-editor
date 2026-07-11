@@ -1,7 +1,6 @@
-import { useState } from 'react'
-import { useItemsStore } from '../store/itemsStore'
-import { useItems } from '../hooks/useItems'
-import { ITEM_CATEGORIES, ITEM_RARITIES, type Item, type ItemInput } from '@shared-types/item'
+import { useItemsStore } from '../store'
+import { useContentActions } from '@renderer/shared/content/useContentModule'
+import { ITEM_CATEGORIES, ITEM_RARITIES, createEmptyItemInput, type Item, type ItemInput } from '@shared-types/item'
 import { IconThumbnail } from '@renderer/shared/components/IconThumbnail'
 import {
   TextField,
@@ -9,13 +8,16 @@ import {
   NumberField,
   SelectField,
   TagListField,
-  BonusListField
+  BonusListField,
+  BulkSelectField,
+  BulkNumberField
 } from '@renderer/shared/components/inspector/fields'
 
+/** Migrado al framework de contenido: mismo patrón que WeaponInspector/ArmorInspector, con los campos propios de Objetos. */
 export function ItemInspector(): JSX.Element {
   const items = useItemsStore((s) => s.items)
   const selectedIds = useItemsStore((s) => s.selectedIds)
-  const { updateItem, bulkUpdate } = useItems()
+  const { updateRecord, bulkUpdate } = useContentActions(useItemsStore, window.api.items, createEmptyItemInput)
 
   if (selectedIds.length === 0) {
     return (
@@ -26,7 +28,24 @@ export function ItemInspector(): JSX.Element {
   }
 
   if (selectedIds.length > 1) {
-    return <BulkEditPanel ids={selectedIds} onApply={(patch) => bulkUpdate(selectedIds, patch)} />
+    return (
+      <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
+        <div className="text-sm font-medium text-slate-200">{selectedIds.length} objetos seleccionados</div>
+        <p className="text-xs text-slate-500">Los cambios aquí se aplican a los {selectedIds.length} objetos a la vez.</p>
+        <BulkSelectField
+          label="Categoría"
+          options={ITEM_CATEGORIES}
+          onApply={(value) => bulkUpdate(selectedIds, { category: value })}
+        />
+        <BulkSelectField
+          label="Rareza"
+          options={ITEM_RARITIES}
+          onApply={(value) => bulkUpdate(selectedIds, { rarity: value })}
+        />
+        <BulkNumberField label="Nivel requerido" onApply={(value) => bulkUpdate(selectedIds, { requiredLevel: value })} />
+        <BulkNumberField label="Valor" onApply={(value) => bulkUpdate(selectedIds, { value })} />
+      </div>
+    )
   }
 
   const item = items.find((candidate) => candidate.id === selectedIds[0])
@@ -34,7 +53,7 @@ export function ItemInspector(): JSX.Element {
     return <div className="p-4 text-sm text-slate-500">Objeto no encontrado</div>
   }
 
-  return <SingleItemInspector key={item.id} item={item} onCommit={(patch) => updateItem(item.id, patch)} />
+  return <SingleItemInspector key={item.id} item={item} onCommit={(patch) => updateRecord(item.id, patch)} />
 }
 
 function SingleItemInspector({
@@ -101,24 +120,9 @@ function SingleItemInspector({
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <NumberField
-          label="Vida"
-          value={item.healthRestore}
-          allowNull
-          onCommit={(healthRestore) => onCommit({ healthRestore })}
-        />
-        <NumberField
-          label="Comida"
-          value={item.foodRestore}
-          allowNull
-          onCommit={(foodRestore) => onCommit({ foodRestore })}
-        />
-        <NumberField
-          label="Mana"
-          value={item.manaRestore}
-          allowNull
-          onCommit={(manaRestore) => onCommit({ manaRestore })}
-        />
+        <NumberField label="Vida" value={item.healthRestore} allowNull onCommit={(healthRestore) => onCommit({ healthRestore })} />
+        <NumberField label="Comida" value={item.foodRestore} allowNull onCommit={(foodRestore) => onCommit({ foodRestore })} />
+        <NumberField label="Mana" value={item.manaRestore} allowNull onCommit={(manaRestore) => onCommit({ manaRestore })} />
       </div>
 
       <TextField
@@ -151,121 +155,6 @@ function SingleItemInspector({
       <div className="text-[10px] text-slate-600">
         #{item.id} · actualizado {new Date(item.updatedAt).toLocaleString('es')}
       </div>
-    </div>
-  )
-}
-
-function BulkEditPanel({
-  ids,
-  onApply
-}: {
-  ids: number[]
-  onApply(patch: Partial<ItemInput>): Promise<void>
-}): JSX.Element {
-  return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-      <div className="text-sm font-medium text-slate-200">{ids.length} objetos seleccionados</div>
-      <p className="text-xs text-slate-500">Los cambios aquí se aplican a los {ids.length} objetos a la vez.</p>
-
-      <BulkSelectField
-        label="Categoría"
-        options={ITEM_CATEGORIES}
-        onApply={(value) => onApply({ category: value })}
-      />
-      <BulkSelectField label="Rareza" options={ITEM_RARITIES} onApply={(value) => onApply({ rarity: value })} />
-      <BulkNumberField label="Nivel requerido" onApply={(value) => onApply({ requiredLevel: value })} />
-      <BulkNumberField label="Valor" onApply={(value) => onApply({ value })} />
-    </div>
-  )
-}
-
-function BulkSelectField<T extends string>({
-  label,
-  options,
-  onApply
-}: {
-  label: string
-  options: readonly T[]
-  onApply(value: T): Promise<void>
-}): JSX.Element {
-  const [value, setValue] = useState<T>(options[0])
-  const [applying, setApplying] = useState(false)
-
-  const apply = async (): Promise<void> => {
-    setApplying(true)
-    try {
-      await onApply(value)
-    } finally {
-      setApplying(false)
-    }
-  }
-
-  return (
-    <div className="flex items-end gap-2">
-      <div className="flex-1">
-        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">{label}</label>
-        <select
-          value={value}
-          onChange={(event) => setValue(event.target.value as T)}
-          className="w-full rounded-md border border-surface-border bg-surface-2 px-2 py-1.5 text-sm text-slate-200 outline-none focus:border-accent"
-        >
-          {options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </div>
-      <button
-        type="button"
-        disabled={applying}
-        onClick={apply}
-        className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-60"
-      >
-        Aplicar
-      </button>
-    </div>
-  )
-}
-
-function BulkNumberField({
-  label,
-  onApply
-}: {
-  label: string
-  onApply(value: number): Promise<void>
-}): JSX.Element {
-  const [value, setValue] = useState('0')
-  const [applying, setApplying] = useState(false)
-
-  const apply = async (): Promise<void> => {
-    setApplying(true)
-    try {
-      await onApply(Number(value) || 0)
-    } finally {
-      setApplying(false)
-    }
-  }
-
-  return (
-    <div className="flex items-end gap-2">
-      <div className="flex-1">
-        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">{label}</label>
-        <input
-          type="number"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          className="w-full rounded-md border border-surface-border bg-surface-2 px-2 py-1.5 text-sm text-slate-200 outline-none focus:border-accent"
-        />
-      </div>
-      <button
-        type="button"
-        disabled={applying}
-        onClick={apply}
-        className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-60"
-      >
-        Aplicar
-      </button>
     </div>
   )
 }

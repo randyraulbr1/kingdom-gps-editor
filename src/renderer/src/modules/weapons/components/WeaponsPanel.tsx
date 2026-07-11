@@ -19,7 +19,8 @@ const CONFIG: ContentModuleConfig<Weapon> = {
   emptyText: 'Sin armas. Usa "Nueva arma" para crear la primera.',
   categoryOptions: WEAPON_CLASSES,
   rarityOptions: ITEM_RARITIES,
-  tableColumns: TABLE_COLUMNS
+  tableColumns: TABLE_COLUMNS,
+  onExport: () => void window.api.export.weapons()
 }
 
 /** Panel del módulo Armas: todo el módulo se reduce a esta composición sobre el framework de contenido. */

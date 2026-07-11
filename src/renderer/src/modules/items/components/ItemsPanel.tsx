@@ -1,28 +1,39 @@
-import { useItems } from '../hooks/useItems'
-import { useItemsStore } from '../store/itemsStore'
-import { ItemsToolbar } from './ItemsToolbar'
-import { ItemGrid } from './ItemGrid'
-import { ItemListView } from './ItemListView'
-import { ItemTableView } from './ItemTableView'
+import { ContentModulePanel, type ContentModuleConfig } from '@renderer/shared/content/ContentModulePanel'
+import type { ContentColumn } from '@renderer/shared/content/contentTypes'
+import { ITEM_CATEGORIES, ITEM_RARITIES, createEmptyItemInput, type Item } from '@shared-types/item'
+import { useItemsStore } from '../store'
 import { ItemInspector } from './ItemInspector'
 
-export function ItemsPanel(): JSX.Element {
-  useItems()
-  const viewMode = useItemsStore((s) => s.viewMode)
+const TABLE_COLUMNS: ContentColumn<Item>[] = [
+  { header: 'Valor', render: (item) => item.value },
+  { header: 'Peso', render: (item) => item.weight },
+  { header: 'Nivel', render: (item) => item.requiredLevel }
+]
 
+const CONFIG: ContentModuleConfig<Item> = {
+  labelPlural: 'objetos',
+  createLabel: 'Nuevo objeto',
+  searchPlaceholder: 'Buscar objetos...',
+  emptyText: 'Sin objetos. Usa "Nuevo objeto" para crear el primero.',
+  categoryOptions: ITEM_CATEGORIES,
+  rarityOptions: ITEM_RARITIES,
+  tableColumns: TABLE_COLUMNS,
+  onExport: () => void window.api.export.items()
+}
+
+/**
+ * Panel del módulo Objetos, migrado al framework de contenido genérico (antes
+ * era la implementación "a mano" que sirvió de referencia para Armas y
+ * Armaduras). Misma composición que WeaponsPanel/ArmorPanel.
+ */
+export function ItemsPanel(): JSX.Element {
   return (
-    <div className="flex h-full flex-col bg-surface-1">
-      <ItemsToolbar />
-      <div className="flex min-h-0 flex-1">
-        <div className="min-w-0 flex-1">
-          {viewMode === 'grid' && <ItemGrid />}
-          {viewMode === 'list' && <ItemListView />}
-          {viewMode === 'table' && <ItemTableView />}
-        </div>
-        <div className="w-72 shrink-0 border-l border-surface-border">
-          <ItemInspector />
-        </div>
-      </div>
-    </div>
+    <ContentModulePanel
+      useStore={useItemsStore}
+      api={window.api.items}
+      createEmpty={createEmptyItemInput}
+      config={CONFIG}
+      inspector={<ItemInspector />}
+    />
   )
 }

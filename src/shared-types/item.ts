@@ -46,7 +46,8 @@ export type ItemInput = Omit<Item, 'id' | 'createdAt' | 'updatedAt'>
 
 export interface ItemQuery {
   search?: string
-  category?: ItemCategory
+  /** string (no ItemCategory) para ser compatible con la query genérica del framework de contenido. */
+  category?: string
   rarity?: ItemRarity
   limit?: number
   offset?: number

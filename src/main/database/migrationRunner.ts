@@ -5,6 +5,7 @@ import * as m003 from './migrations/003_items'
 import * as m004 from './migrations/004_world_entities'
 import * as m005 from './migrations/005_world_zones'
 import * as m006 from './migrations/006_weapons'
+import * as m007 from './migrations/007_armor'
 
 interface Migration {
   id: string
@@ -12,7 +13,7 @@ interface Migration {
 }
 
 /** New migrations are appended here, never edited after being released - see README. */
-const MIGRATIONS: Migration[] = [m001, m002, m003, m004, m005, m006]
+const MIGRATIONS: Migration[] = [m001, m002, m003, m004, m005, m006, m007]
 
 function splitStatements(sql: string): string[] {
   return sql
