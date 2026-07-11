@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Swords,
   Package,
+  Pickaxe,
   Power
 } from 'lucide-react'
 
@@ -214,6 +215,20 @@ function renderEntityMenu(props: Props, entity: WorldEntityUI): JSX.Element {
           <MenuItem
             icon={<Package size={13} />}
             label="Abrir cofre / Probar apertura"
+            onClick={() => {
+              props.onOpenInteraction(entity)
+              onClose()
+            }}
+          />
+          <Separator />
+        </>
+      )}
+
+      {entity.entityType === WorldEntityType.Resource && (
+        <>
+          <MenuItem
+            icon={<Pickaxe size={13} />}
+            label="Abrir recurso / Probar recolección"
             onClick={() => {
               props.onOpenInteraction(entity)
               onClose()

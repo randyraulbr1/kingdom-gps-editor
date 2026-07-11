@@ -28,8 +28,9 @@ Actualizado: 2026-07-11 (integración de parche + menú contextual + pines Tiend
 | **Pin Monstruo funcional** (stats, distancias GPS, loot, spawn, IA de 4 estados, simuladores) | `worldEditor/components/EnemyModal`, `content/enemyConfig` | ✅ |
 | **Primitivas de loot compartidas** (tabla + tirada, reutilizadas por Monstruo y Cofre) | `content/lootTable` | ✅ |
 | **Pin Cofre/Loot funcional** (loot + monedas + exp, condiciones, simulador de apertura) | `worldEditor/components/ChestModal`, `content/chestConfig` | ✅ |
+| **Pin Recurso funcional** (cantidad, herramienta/nivel, radio, respawn, modo, simulador) | `worldEditor/components/ResourceModal`, `content/resourceConfig` | ✅ |
 
-Verificado en este entorno: `typecheck` limpio, **100/100 pruebas**, `electron-vite build` OK.
+Verificado en este entorno: `typecheck` limpio, **112/112 pruebas**, `electron-vite build` OK.
 **Pendiente:** empaquetado `.exe` (`electron-builder --win`, requiere Windows) y
 **verificación visual en el Windows del usuario** de Tienda/NPC.
 
@@ -44,8 +45,10 @@ Verificado en este entorno: `typecheck` limpio, **100/100 pruebas**, `electron-v
 - Módulo de **tablas de loot reutilizables** con pestaña "usado por" y borrado seguro
   (doc 22) — hoy el loot vive embebido en cada pin (Monstruo/Cofre) con primitivas
   compartidas, pero no hay catálogo central de tablas ni gestión de referencias.
-- Recursos, recolección y respawn (doc 23).
-- Rutas de enemigos y spawn por zona (doc 14).
+- **Rutas de enemigos** (ruta roja) y spawn por zona (doc 14) — bloque mayor que
+  un pin: requiere dibujar polilíneas de ruta sobre el mapa.
+- Sugerencia de recursos desde OSM por etiquetas y catálogos centrales
+  reutilizables de loot/recursos con "usado por" (docs 22, 23).
 - Administrador de referencias y borrado seguro (doc 19).
 - Validador del mundo y publicación (doc 24).
 - Capas, filtros y búsqueda avanzada (doc 26).

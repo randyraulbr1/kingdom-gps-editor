@@ -67,9 +67,11 @@
    (idle/chasing/attacking/returning con tolerancia GPS), simuladores de IA y loot, validaciones
 ✅ **Pin Cofre/Loot funcional** (doc 22): loot compartido (`content/lootTable`) + monedas/exp,
    condiciones (radio, nivel, misión requerida, uso único/repetible, reparto), simulador de apertura
-🟡 Verificación visual en Windows pendiente para Tienda/NPC/Diálogos/Monstruo/Cofre (código + tests + build OK en CI)
-⚪ Ruta roja de enemigos + combate compartido por proximidad (docs 14, 21) — requiere servidor
-⚪ Módulo de tablas de loot reutilizables con "usado por" y borrado seguro (doc 22 completo)
+✅ **Pin Recurso funcional** (doc 23): cantidad/rareza, herramienta y nivel requeridos, radio, respawn,
+   modo de disponibilidad (personal/compartido/grupo/uso único) y simulador de recolección
+🟡 Verificación visual en Windows pendiente para Tienda/NPC/Diálogos/Monstruo/Cofre/Recurso (código + tests + build OK en CI)
+⚪ Ruta roja de enemigos + spawn por zona (docs 14, 21) — dibujar polilíneas + combate compartido (servidor)
+⚪ Módulos centrales reutilizables de loot/recursos con "usado por" y borrado seguro (docs 22, 23 completos)
 ⚪ Inspector unificado con pestañas (doc 27) — hoy inspector básico + modales por tipo
 ⚪ Cadenas de misiones entre varios NPC y persistencia del progreso (requiere módulo dedicado / servidor)
 ⚪ Cola `world_sync_jobs` + estados de sync avanzados (solo se maneja `local` de 10)

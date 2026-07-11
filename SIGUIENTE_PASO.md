@@ -37,6 +37,8 @@ No marcar una característica como terminada hasta que exista código, pruebas y
   IA de 4 estados y simuladores de IA y loot.
 - **Pin Cofre/Loot funcional** (doc 22): tabla de loot compartida + monedas/experiencia,
   condiciones (radio, nivel, misión requerida, uso único/repetible) y simulador de apertura.
+- **Pin Recurso funcional** (doc 23): cantidad, rareza, herramienta/nivel, radio, respawn,
+  modo de disponibilidad y simulador de recolección.
 - Script `actualizar.bat` para actualizar y verificar la copia local en Windows con un doble clic.
 
 ## Trabajo completado en esta sesión
@@ -84,6 +86,11 @@ No marcar una característica como terminada hasta que exista código, pruebas y
    uso único/repetible + reparto personal/compartido), `ChestModal` con pestañas
    Recompensa/Loot/Condiciones/Probar y simulador de apertura (rango/nivel/doble
    apertura) + cálculo de recompensa. En `content/chestConfig.ts`.
+8. **Pin Recurso funcional** ✅ (doc 23): config en `properties.resource` (nombre,
+   categoría, rareza, cantidades, probabilidad, herramienta/nivel requeridos,
+   tiempos, radio, máx usos, modo de disponibilidad), `ResourceModal` con pestañas
+   Recurso/GPS y respawn/Probar, simulador de recolección (rango/nivel/herramienta/
+   inventario/usos) y validaciones. En `content/resourceConfig.ts`.
 
 > Nota de honestidad: todo lo anterior está implementado en código, persiste y
 > pasa typecheck/tests/build en este entorno (74/74 pruebas). **Falta la
@@ -110,8 +117,10 @@ No marcar una característica como terminada hasta que exista código, pruebas y
    local y loot; falta ruta roja de enemigos y combate compartido real → servidor).
 4. ✅ Loot, recompensas y cofres (doc 22) (pin Cofre con loot/monedas/exp y
    simulador; falta módulo de tablas de loot reutilizables con "usado por" → doc 22 completo).
-5. Recursos, recolección y respawn (doc 23) — **siguiente**.
-6. Rutas de enemigos y spawn por zona (doc 14).
+5. ✅ Recursos, recolección y respawn (doc 23) (pin Recurso con simulador; falta
+   sugerencia desde OSM por etiquetas y catálogo central de recursos).
+6. Rutas de enemigos y spawn por zona (doc 14) — **siguiente** (implica dibujar
+   rutas rojas sobre el mapa, es un bloque mayor que un pin).
 
 ### Prioridad 3 — sistemas de seguridad del editor
 
@@ -134,9 +143,11 @@ Una función solo se marca como hecha cuando:
 
 ## Próxima tarea recomendada
 
-**Continuar la Prioridad 2 por el pin Recurso (doc 23) y luego rutas de enemigos (doc 14),**
-reutilizando el mismo patrón ya probado con Tienda, NPC, Monstruo y Cofre: modelo
-saneado en `properties`, modal con pestañas, simulador local y tests. Regla del proyecto:
+**Continuar la Prioridad 2 por las rutas de enemigos (doc 14),** que implica dibujar
+rutas rojas sobre el mapa (polilíneas) con lista ponderada de enemigos y spawn por
+zona — es un bloque mayor que un pin. Después, el módulo de tablas de loot/recursos
+reutilizables con "usado por". El patrón de pin ya probado (modelo saneado en
+`properties`, modal con pestañas, simulador local y tests) se mantiene. Regla del proyecto:
 no avanzar al siguiente pin hasta que el anterior tenga typecheck limpio, tests
 verdes y build correcto. Antes de darlo por cerrado, pedir al usuario la
 verificación visual en Windows.
