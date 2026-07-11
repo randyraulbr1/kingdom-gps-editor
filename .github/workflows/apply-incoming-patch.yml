@@ -1,0 +1,37 @@
+name: Apply incoming patch
+
+on:
+  push:
+    paths:
+      - 'incoming/*.patch'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Apply patch commit
+        run: |
+          PATCH_FILE=$(find incoming -maxdepth 1 -name '*.patch' | head -n 1)
+          test -n "$PATCH_FILE"
+          git am "$PATCH_FILE"
+
+      - name: Remove processed patch
+        run: |
+          git rm incoming/*.patch
+          git commit -m "Eliminar parche procesado"
+
+      - name: Push changes
+        run: git push origin HEAD:main
