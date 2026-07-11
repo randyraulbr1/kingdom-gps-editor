@@ -14,6 +14,7 @@ import {
   Crosshair,
   SlidersHorizontal,
   MessageSquare,
+  Swords,
   Power
 } from 'lucide-react'
 
@@ -184,6 +185,20 @@ function renderEntityMenu(props: Props, entity: WorldEntityUI): JSX.Element {
           <MenuItem
             icon={<MessageSquare size={13} />}
             label="Abrir diálogo"
+            onClick={() => {
+              props.onOpenInteraction(entity)
+              onClose()
+            }}
+          />
+          <Separator />
+        </>
+      )}
+
+      {entity.entityType === WorldEntityType.Enemy && (
+        <>
+          <MenuItem
+            icon={<Swords size={13} />}
+            label="Abrir enemigo / Probar spawn"
             onClick={() => {
               props.onOpenInteraction(entity)
               onClose()

@@ -33,6 +33,9 @@ No marcar una característica como terminada hasta que exista código, pruebas y
 - **Pin NPC funcional** con **diálogos como nodos conectados** (opciones + efectos),
   **misiones con pasos que apuntan a pines del mapa**, validación de referencias
   rotas, indicadores `!`/`?`/🛒 y previsualización que recorre el diálogo.
+- **Pin Monstruo funcional** (doc 21): stats, distancias GPS, tabla de loot, spawn,
+  IA de 4 estados y simuladores de IA y loot.
+- Script `actualizar.bat` para actualizar y verificar la copia local en Windows con un doble clic.
 
 ## Trabajo completado en esta sesión
 
@@ -69,6 +72,10 @@ No marcar una característica como terminada hasta que exista código, pruebas y
 5. **Misiones con pasos conectados al mapa** ✅ (docs 08, 20): la misión del NPC
    tiene pasos ordenados; cada paso puede apuntar a un pin del mapa (`targetWorldId`)
    con selector, y se valida que el pin objetivo exista. En `content/npcConfig.ts`.
+6. **Pin Monstruo funcional** ✅ (doc 21): config en `properties.enemy` (stats,
+   distancias GPS, tabla de loot, spawn), `EnemyModal` con pestañas Estadísticas/
+   GPS/Loot/Spawn/Probar, IA de 4 estados con tolerancia GPS y simulador de loot,
+   validaciones (ataque>persecución, tiempos inválidos, etc.). En `content/enemyConfig.ts`.
 
 > Nota de honestidad: todo lo anterior está implementado en código, persiste y
 > pasa typecheck/tests/build en este entorno (74/74 pruebas). **Falta la
@@ -91,8 +98,9 @@ No marcar una característica como terminada hasta que exista código, pruebas y
 2. ✅ Misiones con pasos conectados al mapa (hecho: pasos con pin objetivo).
    Pendiente de profundizar: cadenas de misiones entre varios NPC y persistencia
    del progreso (requiere módulo de misiones dedicado / servidor).
-3. Monstruos: combate simple + loot desde el mapa (doc 21) — **siguiente**.
-4. Loot, recompensas y cofres (doc 22).
+3. ✅ Monstruos: combate simple + loot desde el mapa (doc 21) (pin enemigo con IA
+   local y loot; falta ruta roja de enemigos y combate compartido real → servidor).
+4. Loot, recompensas y cofres (doc 22) — **siguiente**.
 5. Recursos, recolección y respawn (doc 23).
 6. Rutas de enemigos y spawn por zona (doc 14).
 
@@ -117,12 +125,18 @@ Una función solo se marca como hecha cuando:
 
 ## Próxima tarea recomendada
 
-**Continuar la Prioridad 2 por el pin Monstruo (doc 21) y luego Cofre/Loot (doc 22),**
-reutilizando el mismo patrón ya probado con Tienda y NPC: modelo saneado en
-`properties`, modal con pestañas, simulador local y tests. Regla del proyecto:
+**Continuar la Prioridad 2 por el pin Cofre/Loot (doc 22) y luego Recursos (doc 23),**
+reutilizando el mismo patrón ya probado con Tienda, NPC y Monstruo: modelo saneado
+en `properties`, modal con pestañas, simulador local y tests. Regla del proyecto:
 no avanzar al siguiente pin hasta que el anterior tenga typecheck limpio, tests
 verdes y build correcto. Antes de darlo por cerrado, pedir al usuario la
 verificación visual en Windows.
+
+## Cómo actualizar la copia local (Windows)
+
+Ejecutar `actualizar.bat` (doble clic) en la carpeta del proyecto: hace
+`git pull` de la rama de trabajo, `npm install`, `npm run typecheck`, `npm test`
+y `npm run build`. Al terminar sin errores, abrir con `npm run dev`.
 
 ## Comandos de comprobación en el PC
 

@@ -63,7 +63,10 @@
    líneas simples, validación de enlaces rotos, editor de grafo y previsualización que recorre el diálogo
 ✅ **Misiones con pasos conectados al mapa** (docs 08, 20): pasos ordenados que apuntan a un pin
    (`targetWorldId`) con selector y validación de que el pin objetivo exista
-🟡 Verificación visual en Windows pendiente para Tienda/NPC/Diálogos (código + tests + build OK en CI)
+✅ **Pin Monstruo funcional** (doc 21): stats, distancias GPS, tabla de loot, spawn, IA de 4 estados
+   (idle/chasing/attacking/returning con tolerancia GPS), simuladores de IA y loot, validaciones
+🟡 Verificación visual en Windows pendiente para Tienda/NPC/Diálogos/Monstruo (código + tests + build OK en CI)
+⚪ Ruta roja de enemigos + combate compartido por proximidad (docs 14, 21) — requiere servidor
 ⚪ Inspector unificado con pestañas (doc 27) — hoy inspector básico + modales por tipo
 ⚪ Cadenas de misiones entre varios NPC y persistencia del progreso (requiere módulo dedicado / servidor)
 ⚪ Cola `world_sync_jobs` + estados de sync avanzados (solo se maneja `local` de 10)
