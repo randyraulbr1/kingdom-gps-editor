@@ -65,8 +65,11 @@
    (`targetWorldId`) con selector y validación de que el pin objetivo exista
 ✅ **Pin Monstruo funcional** (doc 21): stats, distancias GPS, tabla de loot, spawn, IA de 4 estados
    (idle/chasing/attacking/returning con tolerancia GPS), simuladores de IA y loot, validaciones
-🟡 Verificación visual en Windows pendiente para Tienda/NPC/Diálogos/Monstruo (código + tests + build OK en CI)
+✅ **Pin Cofre/Loot funcional** (doc 22): loot compartido (`content/lootTable`) + monedas/exp,
+   condiciones (radio, nivel, misión requerida, uso único/repetible, reparto), simulador de apertura
+🟡 Verificación visual en Windows pendiente para Tienda/NPC/Diálogos/Monstruo/Cofre (código + tests + build OK en CI)
 ⚪ Ruta roja de enemigos + combate compartido por proximidad (docs 14, 21) — requiere servidor
+⚪ Módulo de tablas de loot reutilizables con "usado por" y borrado seguro (doc 22 completo)
 ⚪ Inspector unificado con pestañas (doc 27) — hoy inspector básico + modales por tipo
 ⚪ Cadenas de misiones entre varios NPC y persistencia del progreso (requiere módulo dedicado / servidor)
 ⚪ Cola `world_sync_jobs` + estados de sync avanzados (solo se maneja `local` de 10)

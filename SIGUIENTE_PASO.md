@@ -35,6 +35,8 @@ No marcar una característica como terminada hasta que exista código, pruebas y
   rotas, indicadores `!`/`?`/🛒 y previsualización que recorre el diálogo.
 - **Pin Monstruo funcional** (doc 21): stats, distancias GPS, tabla de loot, spawn,
   IA de 4 estados y simuladores de IA y loot.
+- **Pin Cofre/Loot funcional** (doc 22): tabla de loot compartida + monedas/experiencia,
+  condiciones (radio, nivel, misión requerida, uso único/repetible) y simulador de apertura.
 - Script `actualizar.bat` para actualizar y verificar la copia local en Windows con un doble clic.
 
 ## Trabajo completado en esta sesión
@@ -76,6 +78,12 @@ No marcar una característica como terminada hasta que exista código, pruebas y
    distancias GPS, tabla de loot, spawn), `EnemyModal` con pestañas Estadísticas/
    GPS/Loot/Spawn/Probar, IA de 4 estados con tolerancia GPS y simulador de loot,
    validaciones (ataque>persecución, tiempos inválidos, etc.). En `content/enemyConfig.ts`.
+7. **Pin Cofre/Loot funcional** ✅ (doc 22): primitivas de loot extraídas a
+   `content/lootTable.ts` (compartidas con Monstruo, sin duplicar), config en
+   `properties.chest` (loot + monedas + exp + radio + nivel + misión requerida +
+   uso único/repetible + reparto personal/compartido), `ChestModal` con pestañas
+   Recompensa/Loot/Condiciones/Probar y simulador de apertura (rango/nivel/doble
+   apertura) + cálculo de recompensa. En `content/chestConfig.ts`.
 
 > Nota de honestidad: todo lo anterior está implementado en código, persiste y
 > pasa typecheck/tests/build en este entorno (74/74 pruebas). **Falta la
@@ -100,8 +108,9 @@ No marcar una característica como terminada hasta que exista código, pruebas y
    del progreso (requiere módulo de misiones dedicado / servidor).
 3. ✅ Monstruos: combate simple + loot desde el mapa (doc 21) (pin enemigo con IA
    local y loot; falta ruta roja de enemigos y combate compartido real → servidor).
-4. Loot, recompensas y cofres (doc 22) — **siguiente**.
-5. Recursos, recolección y respawn (doc 23).
+4. ✅ Loot, recompensas y cofres (doc 22) (pin Cofre con loot/monedas/exp y
+   simulador; falta módulo de tablas de loot reutilizables con "usado por" → doc 22 completo).
+5. Recursos, recolección y respawn (doc 23) — **siguiente**.
 6. Rutas de enemigos y spawn por zona (doc 14).
 
 ### Prioridad 3 — sistemas de seguridad del editor
@@ -125,9 +134,9 @@ Una función solo se marca como hecha cuando:
 
 ## Próxima tarea recomendada
 
-**Continuar la Prioridad 2 por el pin Cofre/Loot (doc 22) y luego Recursos (doc 23),**
-reutilizando el mismo patrón ya probado con Tienda, NPC y Monstruo: modelo saneado
-en `properties`, modal con pestañas, simulador local y tests. Regla del proyecto:
+**Continuar la Prioridad 2 por el pin Recurso (doc 23) y luego rutas de enemigos (doc 14),**
+reutilizando el mismo patrón ya probado con Tienda, NPC, Monstruo y Cofre: modelo
+saneado en `properties`, modal con pestañas, simulador local y tests. Regla del proyecto:
 no avanzar al siguiente pin hasta que el anterior tenga typecheck limpio, tests
 verdes y build correcto. Antes de darlo por cerrado, pedir al usuario la
 verificación visual en Windows.

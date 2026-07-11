@@ -27,6 +27,7 @@ import { OsmImportModal } from './OsmImportModal'
 import { ShopModal } from './ShopModal'
 import { NpcModal } from './NpcModal'
 import { EnemyModal } from './EnemyModal'
+import { ChestModal } from './ChestModal'
 import { makeClipboardEntry, buildPasteRequest } from '../utils/clipboard'
 import { readNpcConfig, npcPinBadge } from '../content/npcConfig'
 import type { WorldEntityUI } from '../types'
@@ -305,6 +306,7 @@ export function WorldMapPanel(): JSX.Element {
   const [shopEntity, setShopEntity] = useState<WorldEntityUI | null>(null)
   const [npcEntity, setNpcEntity] = useState<WorldEntityUI | null>(null)
   const [enemyEntity, setEnemyEntity] = useState<WorldEntityUI | null>(null)
+  const [chestEntity, setChestEntity] = useState<WorldEntityUI | null>(null)
   // Aviso efímero (p. ej. "1 elemento copiado / pegado").
   const [notice, setNotice] = useState<string | null>(null)
   const mapRef = useRef<LeafletMap | null>(null)
@@ -453,6 +455,8 @@ export function WorldMapPanel(): JSX.Element {
       setNpcEntity(entity)
     } else if (entity.entityType === WorldEntityType.Enemy) {
       setEnemyEntity(entity)
+    } else if (entity.entityType === WorldEntityType.Chest) {
+      setChestEntity(entity)
     }
   }
 
@@ -840,6 +844,8 @@ export function WorldMapPanel(): JSX.Element {
           {npcEntity && <NpcModal entity={npcEntity} onClose={() => setNpcEntity(null)} />}
 
           {enemyEntity && <EnemyModal entity={enemyEntity} onClose={() => setEnemyEntity(null)} />}
+
+          {chestEntity && <ChestModal entity={chestEntity} onClose={() => setChestEntity(null)} />}
 
           {osmZone && (
             <OsmImportModal

@@ -15,6 +15,7 @@ import {
   SlidersHorizontal,
   MessageSquare,
   Swords,
+  Package,
   Power
 } from 'lucide-react'
 
@@ -199,6 +200,20 @@ function renderEntityMenu(props: Props, entity: WorldEntityUI): JSX.Element {
           <MenuItem
             icon={<Swords size={13} />}
             label="Abrir enemigo / Probar spawn"
+            onClick={() => {
+              props.onOpenInteraction(entity)
+              onClose()
+            }}
+          />
+          <Separator />
+        </>
+      )}
+
+      {entity.entityType === WorldEntityType.Chest && (
+        <>
+          <MenuItem
+            icon={<Package size={13} />}
+            label="Abrir cofre / Probar apertura"
             onClick={() => {
               props.onOpenInteraction(entity)
               onClose()

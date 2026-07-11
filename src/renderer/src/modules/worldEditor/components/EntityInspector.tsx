@@ -1,4 +1,4 @@
-import { Trash2, Copy, Power, Store, MessageSquare, Swords } from 'lucide-react'
+import { Trash2, Copy, Power, Store, MessageSquare, Swords, Package } from 'lucide-react'
 import { WorldEntityType } from '@shared-types/world'
 import { useSelectedEntity, useWorldEditorStore } from '../hooks/useWorldEditorStore'
 import { WorldEditorService } from '../services/entityService'
@@ -91,6 +91,15 @@ export function EntityInspector({ onDelete, onOpenInteraction }: EntityInspector
             className="flex items-center gap-2 rounded-md border border-accent bg-accent-muted px-3 py-1.5 text-sm text-accent hover:brightness-110"
           >
             <Swords size={14} /> Abrir enemigo
+          </button>
+        )}
+        {entity.entityType === WorldEntityType.Chest && (
+          <button
+            type="button"
+            onClick={() => onOpenInteraction(entity)}
+            className="flex items-center gap-2 rounded-md border border-accent bg-accent-muted px-3 py-1.5 text-sm text-accent hover:brightness-110"
+          >
+            <Package size={14} /> Abrir cofre
           </button>
         )}
         <button

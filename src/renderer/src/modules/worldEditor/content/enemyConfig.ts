@@ -7,6 +7,12 @@
  * el combate compartido son responsabilidad del servidor (fase posterior).
  */
 
+import { normalizeLootEntry, newLootEntryId, rollLoot, type LootEntry, type LootDrop } from './lootTable'
+
+// Reexportados para conservar la API previa (monstruos comparten las primitivas de loot).
+export { newLootEntryId, rollLoot }
+export type { LootEntry, LootDrop }
+
 export type EnemyCategory = 'beast' | 'undead' | 'humanoid' | 'elemental' | 'boss' | 'other'
 
 export const ENEMY_CATEGORY_LABELS: Record<EnemyCategory, string> = {
@@ -35,15 +41,6 @@ export interface EnemyGpsRanges {
   attackRadiusM: number
   returnRadiusM: number
   gpsToleranceM: number
-}
-
-export interface LootEntry {
-  id: string
-  itemName: string
-  /** Probabilidad 0..1. */
-  probability: number
-  minQty: number
-  maxQty: number
 }
 
 export interface EnemySpawnConfig {
@@ -106,27 +103,6 @@ function num(value: unknown, fallback: number, min = -Infinity): number {
   return Math.max(min, n)
 }
 
-function randomId(prefix: string): string {
-  const globalCrypto = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto
-  if (globalCrypto?.randomUUID) return globalCrypto.randomUUID()
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-}
-
-export const newLootEntryId = (): string => randomId('loot')
-
-function normalizeLoot(raw: unknown): LootEntry {
-  const obj = (raw ?? {}) as Record<string, unknown>
-  const minQty = Math.max(1, Math.round(num(obj.minQty, 1)))
-  const maxQty = Math.max(minQty, Math.round(num(obj.maxQty, minQty)))
-  return {
-    id: typeof obj.id === 'string' && obj.id ? obj.id : newLootEntryId(),
-    itemName: typeof obj.itemName === 'string' ? obj.itemName : '',
-    probability: Math.min(1, Math.max(0, num(obj.probability, 1))),
-    minQty,
-    maxQty
-  }
-}
-
 export function readEnemyConfig(properties: Record<string, unknown> | undefined | null): EnemyConfig {
   const e = (properties?.enemy ?? {}) as Record<string, unknown>
   const stats = (e.stats ?? {}) as Record<string, unknown>
@@ -152,7 +128,7 @@ export function readEnemyConfig(properties: Record<string, unknown> | undefined 
       returnRadiusM: num(gps.returnRadiusM, d.gps.returnRadiusM, 0),
       gpsToleranceM: num(gps.gpsToleranceM, d.gps.gpsToleranceM, 0)
     },
-    loot: Array.isArray(e.loot) ? e.loot.map(normalizeLoot) : [],
+    loot: Array.isArray(e.loot) ? e.loot.map(normalizeLootEntry) : [],
     spawn: {
       spawnMinSeconds: num(spawn.spawnMinSeconds, d.spawn.spawnMinSeconds, 0),
       spawnMaxSeconds: num(spawn.spawnMaxSeconds, d.spawn.spawnMaxSeconds, 0),
@@ -240,30 +216,4 @@ export function nextEnemyState(current: EnemyAiState, distanceM: number, gps: En
   // Entre persecución y regreso: si venía persiguiendo, regresa.
   if (current === 'chasing' || current === 'attacking') return 'returning'
   return current
-}
-
-/** Devuelve una cantidad entera entre min y max (inclusive) usando rng en [0,1). */
-function rollQuantity(min: number, max: number, rng: () => number): number {
-  return min + Math.floor(rng() * (max - min + 1))
-}
-
-export interface LootDrop {
-  itemName: string
-  quantity: number
-}
-
-/**
- * Simula la caída de loot (doc 21). `rng` permite pruebas deterministas; por
- * defecto usa Math.random. En producción la entrega la calcula el servidor de
- * forma idempotente.
- */
-export function rollLoot(loot: LootEntry[], rng: () => number = Math.random): LootDrop[] {
-  const drops: LootDrop[] = []
-  for (const entry of loot) {
-    if (!entry.itemName.trim()) continue
-    if (rng() < entry.probability) {
-      drops.push({ itemName: entry.itemName, quantity: rollQuantity(entry.minQty, entry.maxQty, rng) })
-    }
-  }
-  return drops
 }
