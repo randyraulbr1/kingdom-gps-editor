@@ -13,6 +13,7 @@ import {
   Trash2,
   Crosshair,
   SlidersHorizontal,
+  MessageSquare,
   Power
 } from 'lucide-react'
 
@@ -169,6 +170,20 @@ function renderEntityMenu(props: Props, entity: WorldEntityUI): JSX.Element {
           <MenuItem
             icon={<Store size={13} />}
             label="Abrir tienda"
+            onClick={() => {
+              props.onOpenInteraction(entity)
+              onClose()
+            }}
+          />
+          <Separator />
+        </>
+      )}
+
+      {entity.entityType === WorldEntityType.Npc && (
+        <>
+          <MenuItem
+            icon={<MessageSquare size={13} />}
+            label="Abrir diálogo"
             onClick={() => {
               props.onOpenInteraction(entity)
               onClose()

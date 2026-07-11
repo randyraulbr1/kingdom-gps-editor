@@ -25,7 +25,9 @@ import { EntityInspector } from './EntityInspector'
 import { MapContextMenu, type MapMenuContext } from './MapContextMenu'
 import { OsmImportModal } from './OsmImportModal'
 import { ShopModal } from './ShopModal'
+import { NpcModal } from './NpcModal'
 import { makeClipboardEntry, buildPasteRequest } from '../utils/clipboard'
+import { readNpcConfig, npcPinBadge } from '../content/npcConfig'
 import type { WorldEntityUI } from '../types'
 import { Layers, Map as MapIcon, Hexagon, Download, List } from 'lucide-react'
 
@@ -138,18 +140,35 @@ const TYPE_NAME: Partial<Record<WorldEntityType, string>> = {
 }
 
 /** Divs, not L.Icon.Default - sidesteps the classic "marker icon 404" bundler issue entirely. */
-function makeDivIcon(entityType: WorldEntityType, isSelected: boolean, syncStatus: string): DivIcon {
+function makeDivIcon(
+  entityType: WorldEntityType,
+  isSelected: boolean,
+  syncStatus: string,
+  badge: string | null
+): DivIcon {
   const colors = getEntityColors(entityType)
   const emoji = getEntityIcon(entityType)
   const dot = SYNC_DOT_COLORS[syncStatus] ?? '#94a3b8'
+  // Indicador de contenido (p. ej. misión de NPC: ! disponible, ? lista).
+  const badgeHtml = badge
+    ? `<span style="position:absolute;bottom:-3px;left:-3px;min-width:13px;height:13px;padding:0 2px;border-radius:7px;background:#111827;border:1.5px solid ${colors.color};color:#fbbf24;font-size:9px;font-weight:700;line-height:11px;text-align:center;">${badge}</span>`
+    : ''
   return L.divIcon({
     html: `<div style="position:relative;width:30px;height:30px;border-radius:50%;background:${colors.bg};border:2px solid ${
       isSelected ? '#ffffff' : colors.color
-    };display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 1px 4px rgba(0,0,0,0.5);">${emoji}<span title="${syncStatus}" style="position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;background:${dot};border:1.5px solid #1e1f22;"></span></div>`,
+    };display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 1px 4px rgba(0,0,0,0.5);">${emoji}<span title="${syncStatus}" style="position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;background:${dot};border:1.5px solid #1e1f22;"></span>${badgeHtml}</div>`,
     className: '',
     iconSize: [30, 30],
     iconAnchor: [15, 15]
   })
+}
+
+/** Indicador de contenido a mostrar sobre el marcador según su tipo/config. */
+function entityBadge(entity: WorldEntityUI): string | null {
+  if (entity.entityType === WorldEntityType.Npc) {
+    return npcPinBadge(readNpcConfig(entity.properties))
+  }
+  return null
 }
 
 /**
@@ -283,6 +302,7 @@ export function WorldMapPanel(): JSX.Element {
   const [osmZone, setOsmZone] = useState<WorldZone | null>(null)
   // Entidad cuya interacción (tienda/NPC) está abierta en modal.
   const [shopEntity, setShopEntity] = useState<WorldEntityUI | null>(null)
+  const [npcEntity, setNpcEntity] = useState<WorldEntityUI | null>(null)
   // Aviso efímero (p. ej. "1 elemento copiado / pegado").
   const [notice, setNotice] = useState<string | null>(null)
   const mapRef = useRef<LeafletMap | null>(null)
@@ -427,6 +447,8 @@ export function WorldMapPanel(): JSX.Element {
     selectEntity(entity.worldId)
     if (entity.entityType === WorldEntityType.Shop) {
       setShopEntity(entity)
+    } else if (entity.entityType === WorldEntityType.Npc) {
+      setNpcEntity(entity)
     }
   }
 
@@ -684,7 +706,12 @@ export function WorldMapPanel(): JSX.Element {
                 key={entity.worldId}
                 position={[entity.position.lat, entity.position.lng]}
                 draggable
-                icon={makeDivIcon(entity.entityType, entity.worldId === selectedEntityId, entity.syncStatus)}
+                icon={makeDivIcon(
+                  entity.entityType,
+                  entity.worldId === selectedEntityId,
+                  entity.syncStatus,
+                  entityBadge(entity)
+                )}
                 eventHandlers={{
                   click: () => selectEntity(entity.worldId),
                   dblclick: () => handleOpenInteraction(entity),
@@ -805,6 +832,8 @@ export function WorldMapPanel(): JSX.Element {
           )}
 
           {shopEntity && <ShopModal entity={shopEntity} onClose={() => setShopEntity(null)} />}
+
+          {npcEntity && <NpcModal entity={npcEntity} onClose={() => setNpcEntity(null)} />}
 
           {osmZone && (
             <OsmImportModal

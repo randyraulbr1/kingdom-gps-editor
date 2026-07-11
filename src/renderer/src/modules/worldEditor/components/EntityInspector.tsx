@@ -1,4 +1,4 @@
-import { Trash2, Copy, Power, Store } from 'lucide-react'
+import { Trash2, Copy, Power, Store, MessageSquare } from 'lucide-react'
 import { WorldEntityType } from '@shared-types/world'
 import { useSelectedEntity, useWorldEditorStore } from '../hooks/useWorldEditorStore'
 import { WorldEditorService } from '../services/entityService'
@@ -73,6 +73,15 @@ export function EntityInspector({ onDelete, onOpenInteraction }: EntityInspector
             className="flex items-center gap-2 rounded-md border border-accent bg-accent-muted px-3 py-1.5 text-sm text-accent hover:brightness-110"
           >
             <Store size={14} /> Abrir tienda
+          </button>
+        )}
+        {entity.entityType === WorldEntityType.Npc && (
+          <button
+            type="button"
+            onClick={() => onOpenInteraction(entity)}
+            className="flex items-center gap-2 rounded-md border border-accent bg-accent-muted px-3 py-1.5 text-sm text-accent hover:brightness-110"
+          >
+            <MessageSquare size={14} /> Abrir diálogo
           </button>
         )}
         <button
