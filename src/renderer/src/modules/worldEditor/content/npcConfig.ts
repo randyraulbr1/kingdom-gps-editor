@@ -1,12 +1,19 @@
 /**
  * Configuración de un NPC asociado a un pin del mapa (doc 20).
  *
- * Se guarda dentro de `WorldEntity.properties.npc`. En esta fase el editor
- * mantiene el diálogo y una misión sencilla localmente (borrador). La conexión
- * con módulos NPC/Diálogos/Misiones dedicados y la validación en servidor son
- * fases posteriores; aquí el pin ya deja de ser decorativo y abre una
- * interacción real configurable.
+ * Se guarda dentro de `WorldEntity.properties.npc`. El diálogo se modela como un
+ * grafo de nodos conectados (`content/dialogueGraph.ts`) y la misión tiene pasos
+ * ordenados que pueden apuntar a un pin del mapa (`targetWorldId`). El editor
+ * mantiene esto localmente (borrador); la validación final de recompensas y
+ * progreso es del servidor en fases posteriores.
  */
+
+import {
+  normalizeDialogueGraph,
+  validateDialogueGraph,
+  EMPTY_DIALOGUE_GRAPH,
+  type DialogueGraph
+} from './dialogueGraph'
 
 /** Acción principal al interactuar con el NPC. */
 export type NpcAction = 'talk' | 'give_quest' | 'continue_quest' | 'complete_quest' | 'open_shop' | 'heal' | 'info'
@@ -14,15 +21,19 @@ export type NpcAction = 'talk' | 'give_quest' | 'continue_quest' | 'complete_que
 /** Estado de la misión asociada, usado también para el indicador visual del pin. */
 export type NpcQuestStatus = 'none' | 'available' | 'ready'
 
-export interface DialogueLine {
+/** Un paso de la misión; puede apuntar a un pin del mapa (worldId) como objetivo. */
+export interface QuestStep {
   id: string
-  text: string
+  description: string
+  /** worldId de la entidad objetivo en el mapa, o null si el paso no tiene destino físico. */
+  targetWorldId: string | null
 }
 
 export interface NpcQuest {
   title: string
   description: string
   status: NpcQuestStatus
+  steps: QuestStep[]
 }
 
 export interface NpcConfig {
@@ -33,7 +44,8 @@ export interface NpcConfig {
   interactionRadiusM: number
   /** Nivel mínimo del jugador para interactuar (0 = sin requisito). */
   minLevel: number
-  dialogue: DialogueLine[]
+  /** Diálogo como grafo de nodos conectados. */
+  dialogue: DialogueGraph
   quest: NpcQuest | null
 }
 
@@ -52,7 +64,7 @@ export const DEFAULT_NPC_CONFIG: NpcConfig = {
   action: 'talk',
   interactionRadiusM: 25,
   minLevel: 0,
-  dialogue: [],
+  dialogue: { ...EMPTY_DIALOGUE_GRAPH },
   quest: null
 }
 
@@ -63,17 +75,20 @@ function toNumber(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback
 }
 
-export function newDialogueLineId(): string {
+function randomId(prefix: string): string {
   const globalCrypto = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto
   if (globalCrypto?.randomUUID) return globalCrypto.randomUUID()
-  return `line_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 }
 
-function normalizeLine(raw: unknown): DialogueLine {
+export const newQuestStepId = (): string => randomId('step')
+
+function normalizeStep(raw: unknown): QuestStep {
   const obj = (raw ?? {}) as Record<string, unknown>
   return {
-    id: typeof obj.id === 'string' && obj.id ? obj.id : newDialogueLineId(),
-    text: typeof obj.text === 'string' ? obj.text : ''
+    id: typeof obj.id === 'string' && obj.id ? obj.id : newQuestStepId(),
+    description: typeof obj.description === 'string' ? obj.description : '',
+    targetWorldId: typeof obj.targetWorldId === 'string' ? obj.targetWorldId : null
   }
 }
 
@@ -84,7 +99,8 @@ function normalizeQuest(raw: unknown): NpcQuest | null {
   return {
     title: typeof obj.title === 'string' ? obj.title : '',
     description: typeof obj.description === 'string' ? obj.description : '',
-    status
+    status,
+    steps: Array.isArray(obj.steps) ? obj.steps.map(normalizeStep) : []
   }
 }
 
@@ -92,12 +108,17 @@ function normalizeQuest(raw: unknown): NpcQuest | null {
 export function readNpcConfig(properties: Record<string, unknown> | undefined | null): NpcConfig {
   const npc = (properties?.npc ?? {}) as Record<string, unknown>
   const action = NPC_ACTIONS.includes(npc.action as NpcAction) ? (npc.action as NpcAction) : DEFAULT_NPC_CONFIG.action
+  // Migración: si `dialogue` es un array de líneas antiguas, se convierte a grafo.
+  const legacyLines = Array.isArray(npc.dialogue)
+    ? (npc.dialogue as Array<{ id?: string; text: string }>)
+    : undefined
+  const dialogue = normalizeDialogueGraph(npc.dialogue, legacyLines)
   return {
     displayName: typeof npc.displayName === 'string' ? npc.displayName : '',
     action,
     interactionRadiusM: Math.max(1, toNumber(npc.interactionRadiusM, DEFAULT_NPC_CONFIG.interactionRadiusM)),
     minLevel: Math.max(0, toNumber(npc.minLevel, 0)),
-    dialogue: Array.isArray(npc.dialogue) ? npc.dialogue.map(normalizeLine) : [],
+    dialogue,
     quest: normalizeQuest(npc.quest)
   }
 }
@@ -112,13 +133,46 @@ export function writeNpcConfig(
 
 /**
  * Indicador visual sobre el pin NPC (doc 20): `!` misión disponible,
- * `?` lista para entregar, `🛒` comerciante, punto gris si solo dialoga.
+ * `?` lista para entregar, `🛒` comerciante, nada si solo dialoga.
  */
 export function npcPinBadge(config: NpcConfig): string | null {
   if (config.quest?.status === 'available') return '!'
   if (config.quest?.status === 'ready') return '?'
   if (config.action === 'open_shop') return '🛒'
   return null
+}
+
+export interface NpcReferenceError {
+  code: 'dialogue_broken_link' | 'quest_step_missing_target' | 'no_dialogue_for_talk'
+  message: string
+}
+
+/**
+ * Valida las referencias del NPC (doc 20): enlaces de diálogo rotos y pasos de
+ * misión cuyo pin objetivo ya no existe en el mapa. `existingWorldIds` son los
+ * worldId de las entidades actuales del mundo.
+ */
+export function validateNpcReferences(config: NpcConfig, existingWorldIds: ReadonlySet<string>): NpcReferenceError[] {
+  const errors: NpcReferenceError[] = []
+  for (const err of validateDialogueGraph(config.dialogue)) {
+    if (err.code === 'broken_link') {
+      errors.push({ code: 'dialogue_broken_link', message: err.message })
+    }
+  }
+  if (config.action === 'talk' && config.dialogue.nodes.length === 0) {
+    errors.push({ code: 'no_dialogue_for_talk', message: 'La acción es "Hablar" pero no hay diálogo asignado' })
+  }
+  if (config.quest) {
+    for (const step of config.quest.steps) {
+      if (step.targetWorldId && !existingWorldIds.has(step.targetWorldId)) {
+        errors.push({
+          code: 'quest_step_missing_target',
+          message: `El paso "${step.description || 'sin nombre'}" apunta a un pin que ya no existe`
+        })
+      }
+    }
+  }
+  return errors
 }
 
 export interface NpcInteractionSimInput {

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { X, Plus, Trash2, Save, MessageSquare, FlaskConical } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { X, Plus, Trash2, Save, MessageSquare, FlaskConical, AlertTriangle, Flag, RotateCcw, Play } from 'lucide-react'
 import type { WorldEntityUI } from '../types'
 import { WorldEditorService } from '../services/entityService'
 import { useWorldEditorStore } from '../hooks/useWorldEditorStore'
@@ -7,13 +7,26 @@ import {
   readNpcConfig,
   writeNpcConfig,
   simulateNpcInteraction,
-  newDialogueLineId,
+  validateNpcReferences,
+  newQuestStepId,
   NPC_ACTION_LABELS,
   type NpcConfig,
   type NpcAction,
   type NpcQuestStatus,
-  type DialogueLine
+  type QuestStep
 } from '../content/npcConfig'
+import {
+  validateDialogueGraph,
+  getStartNode,
+  advanceDialogue,
+  newNodeId,
+  newOptionId,
+  DIALOGUE_EFFECT_LABELS,
+  type DialogueGraph,
+  type DialogueNode,
+  type DialogueOption,
+  type DialogueEffect
+} from '../content/dialogueGraph'
 
 interface Props {
   entity: WorldEntityUI
@@ -32,36 +45,31 @@ const inputClass =
   'w-full rounded-md border border-surface-border bg-surface-2 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-accent'
 
 /**
- * Ficha funcional de un NPC del mapa (doc 20). Edita la config guardada en
- * `entity.properties.npc` y la persiste vía IPC. Incluye un simulador local de
- * interacción ("Probar interacción") que no cambia estado real.
+ * Ficha funcional de un NPC del mapa (doc 20): diálogo como grafo de nodos
+ * conectados, misión con pasos que pueden apuntar a pines del mapa, validación
+ * de referencias rotas y simuladores locales. Persiste en `properties.npc`.
  */
 export function NpcModal({ entity, onClose }: Props): JSX.Element {
   const updateEntity = useWorldEditorStore((s) => s.updateEntity)
+  const allEntities = useWorldEditorStore((s) => s.entities)
   const [config, setConfig] = useState<NpcConfig>(() => readNpcConfig(entity.properties))
   const [tab, setTab] = useState<Tab>('identidad')
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(false)
 
+  // Otros pines del mapa que un paso de misión puede usar como objetivo.
+  const targetOptions = useMemo(
+    () => allEntities.filter((e) => e.worldId !== entity.worldId).map((e) => ({ id: e.worldId, name: e.name, type: e.entityType })),
+    [allEntities, entity.worldId]
+  )
+  const existingWorldIds = useMemo(() => new Set(allEntities.map((e) => e.worldId)), [allEntities])
+  const refErrors = validateNpcReferences(config, existingWorldIds)
+
   const patch = (partial: Partial<NpcConfig>): void => {
     setConfig((c) => ({ ...c, ...partial }))
     setDirty(true)
   }
-
-  const patchLine = (id: string, text: string): void => {
-    setConfig((c) => ({ ...c, dialogue: c.dialogue.map((l) => (l.id === id ? { ...l, text } : l)) }))
-    setDirty(true)
-  }
-
-  const addLine = (): void => {
-    setConfig((c) => ({ ...c, dialogue: [...c.dialogue, { id: newDialogueLineId(), text: '' }] }))
-    setDirty(true)
-  }
-
-  const removeLine = (id: string): void => {
-    setConfig((c) => ({ ...c, dialogue: c.dialogue.filter((l) => l.id !== id) }))
-    setDirty(true)
-  }
+  const patchDialogue = (dialogue: DialogueGraph): void => patch({ dialogue })
 
   const handleSave = async (): Promise<void> => {
     setSaving(true)
@@ -80,7 +88,7 @@ export function NpcModal({ entity, onClose }: Props): JSX.Element {
   return (
     <div className="absolute inset-0 z-[1400] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
-        className="flex max-h-full w-[560px] max-w-full flex-col overflow-hidden rounded-lg border border-surface-border bg-surface-1 shadow-2xl"
+        className="flex max-h-full w-[620px] max-w-full flex-col overflow-hidden rounded-lg border border-surface-border bg-surface-1 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-surface-border px-4 py-3">
@@ -93,6 +101,17 @@ export function NpcModal({ entity, onClose }: Props): JSX.Element {
             <X size={16} />
           </button>
         </div>
+
+        {refErrors.length > 0 && (
+          <div className="flex items-start gap-2 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-[11px] text-amber-300">
+            <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+            <div>
+              {refErrors.map((e, i) => (
+                <div key={i}>{e.message}</div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-1 border-b border-surface-border px-2 pt-2">
           {(['identidad', 'dialogo', 'mision', 'probar'] as Tab[]).map((t) => (
@@ -111,16 +130,14 @@ export function NpcModal({ entity, onClose }: Props): JSX.Element {
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
           {tab === 'identidad' && <IdentityTab config={config} patch={patch} entityName={entity.name} />}
-          {tab === 'dialogo' && (
-            <DialogueTab dialogue={config.dialogue} patchLine={patchLine} addLine={addLine} removeLine={removeLine} />
-          )}
-          {tab === 'mision' && <QuestTab config={config} patch={patch} />}
+          {tab === 'dialogo' && <DialogueTab dialogue={config.dialogue} onChange={patchDialogue} />}
+          {tab === 'mision' && <QuestTab config={config} patch={patch} targetOptions={targetOptions} />}
           {tab === 'probar' && <TestTab config={config} />}
         </div>
 
         <div className="flex items-center gap-2 border-t border-surface-border px-4 py-3">
           <span className="text-[11px] text-slate-500">
-            {config.dialogue.length} línea(s){config.quest ? ` · Misión: ${QUEST_STATUS_LABELS[config.quest.status]}` : ''}
+            {config.dialogue.nodes.length} nodo(s){config.quest ? ` · ${config.quest.steps.length} paso(s)` : ''}
           </span>
           <button
             type="button"
@@ -157,12 +174,7 @@ function IdentityTab({
   return (
     <div className="flex flex-col gap-3">
       <Field label="Nombre mostrado">
-        <input
-          value={config.displayName}
-          placeholder={entityName}
-          onChange={(e) => patch({ displayName: e.target.value })}
-          className={inputClass}
-        />
+        <input value={config.displayName} placeholder={entityName} onChange={(e) => patch({ displayName: e.target.value })} className={inputClass} />
       </Field>
       <Field label="Acción principal">
         <select value={config.action} onChange={(e) => patch({ action: e.target.value as NpcAction })} className={inputClass}>
@@ -197,55 +209,176 @@ function IdentityTab({
   )
 }
 
-function DialogueTab({
-  dialogue,
-  patchLine,
-  addLine,
-  removeLine
-}: {
-  dialogue: DialogueLine[]
-  patchLine(id: string, text: string): void
-  addLine(): void
-  removeLine(id: string): void
-}): JSX.Element {
+// ===== Diálogo (editor de grafo) =====
+
+function DialogueTab({ dialogue, onChange }: { dialogue: DialogueGraph; onChange(g: DialogueGraph): void }): JSX.Element {
+  const errors = validateDialogueGraph(dialogue)
+  const brokenOptionIds = new Set(errors.filter((e) => e.code === 'broken_link').map((e) => e.optionId))
+
+  const addNode = (): void => {
+    const node: DialogueNode = { id: newNodeId(), text: '', options: [] }
+    onChange({
+      startNodeId: dialogue.startNodeId ?? node.id,
+      nodes: [...dialogue.nodes, node]
+    })
+  }
+
+  const removeNode = (id: string): void => {
+    const nodes = dialogue.nodes.filter((n) => n.id !== id)
+    // Limpia enlaces que apuntaban al nodo borrado para no dejar rutas rotas.
+    const cleaned = nodes.map((n) => ({
+      ...n,
+      options: n.options.map((o) => (o.nextNodeId === id ? { ...o, nextNodeId: null } : o))
+    }))
+    onChange({
+      startNodeId: dialogue.startNodeId === id ? (cleaned[0]?.id ?? null) : dialogue.startNodeId,
+      nodes: cleaned
+    })
+  }
+
+  const patchNode = (id: string, partial: Partial<DialogueNode>): void => {
+    onChange({ ...dialogue, nodes: dialogue.nodes.map((n) => (n.id === id ? { ...n, ...partial } : n)) })
+  }
+
+  const setStart = (id: string): void => onChange({ ...dialogue, startNodeId: id })
+
   return (
-    <div className="flex flex-col gap-2">
-      {dialogue.length === 0 && (
+    <div className="flex flex-col gap-3">
+      {dialogue.nodes.length === 0 && (
         <div className="rounded-md border border-dashed border-surface-border px-3 py-6 text-center text-xs text-slate-500">
-          Sin diálogo. Añade líneas para que el NPC pueda hablar.
+          Sin diálogo. Añade nodos conectados por opciones para que el NPC pueda conversar.
         </div>
       )}
-      {dialogue.map((line, index) => (
-        <div key={line.id} className="flex items-start gap-2">
-          <span className="mt-2 w-5 shrink-0 text-right text-[10px] text-slate-500">{index + 1}</span>
-          <textarea
-            value={line.text}
-            rows={2}
-            placeholder="Texto de la línea…"
-            onChange={(e) => patchLine(line.id, e.target.value)}
-            className={`${inputClass} resize-none`}
-          />
-          <button
-            type="button"
-            onClick={() => removeLine(line.id)}
-            className="mt-1 flex items-center justify-center rounded p-1 text-slate-500 hover:bg-surface-2 hover:text-red-400"
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
+      {dialogue.nodes.map((node, index) => (
+        <NodeCard
+          key={node.id}
+          node={node}
+          index={index}
+          isStart={dialogue.startNodeId === node.id}
+          allNodes={dialogue.nodes}
+          brokenOptionIds={brokenOptionIds}
+          onSetStart={() => setStart(node.id)}
+          onRemove={() => removeNode(node.id)}
+          onPatch={(partial) => patchNode(node.id, partial)}
+        />
       ))}
       <button
         type="button"
-        onClick={addLine}
-        className="mt-1 flex items-center justify-center gap-1.5 rounded-md border border-dashed border-surface-border px-3 py-1.5 text-xs text-slate-300 hover:bg-surface-2"
+        onClick={addNode}
+        className="flex items-center justify-center gap-1.5 rounded-md border border-dashed border-surface-border px-3 py-1.5 text-xs text-slate-300 hover:bg-surface-2"
       >
-        <Plus size={13} /> Añadir línea
+        <Plus size={13} /> Añadir nodo
       </button>
     </div>
   )
 }
 
-function QuestTab({ config, patch }: { config: NpcConfig; patch(p: Partial<NpcConfig>): void }): JSX.Element {
+function NodeCard({
+  node,
+  index,
+  isStart,
+  allNodes,
+  brokenOptionIds,
+  onSetStart,
+  onRemove,
+  onPatch
+}: {
+  node: DialogueNode
+  index: number
+  isStart: boolean
+  allNodes: DialogueNode[]
+  brokenOptionIds: Set<string | undefined>
+  onSetStart(): void
+  onRemove(): void
+  onPatch(p: Partial<DialogueNode>): void
+}): JSX.Element {
+  const addOption = (): void => {
+    const option: DialogueOption = { id: newOptionId(), label: 'Continuar', nextNodeId: null, effect: 'none' }
+    onPatch({ options: [...node.options, option] })
+  }
+  const patchOption = (id: string, partial: Partial<DialogueOption>): void => {
+    onPatch({ options: node.options.map((o) => (o.id === id ? { ...o, ...partial } : o)) })
+  }
+  const removeOption = (id: string): void => onPatch({ options: node.options.filter((o) => o.id !== id) })
+
+  return (
+    <div className="rounded-md border border-surface-border bg-surface-2/40 p-2.5">
+      <div className="mb-1.5 flex items-center gap-2">
+        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">Nodo {index + 1}</span>
+        {isStart ? (
+          <span className="rounded bg-accent-muted px-1.5 py-0.5 text-[10px] text-accent">Inicial</span>
+        ) : (
+          <button type="button" onClick={onSetStart} className="text-[10px] text-slate-500 hover:text-accent">
+            marcar inicial
+          </button>
+        )}
+        <button type="button" onClick={onRemove} className="ml-auto rounded p-1 text-slate-500 hover:bg-surface-2 hover:text-red-400">
+          <Trash2 size={12} />
+        </button>
+      </div>
+      <textarea
+        value={node.text}
+        rows={2}
+        placeholder="Texto del NPC…"
+        onChange={(e) => onPatch({ text: e.target.value })}
+        className={`${inputClass} resize-none`}
+      />
+      <div className="mt-2 flex flex-col gap-1.5">
+        {node.options.map((option) => (
+          <div key={option.id} className="grid grid-cols-[1fr_1fr_1fr_24px] items-center gap-1.5">
+            <input
+              value={option.label}
+              placeholder="Respuesta"
+              onChange={(e) => patchOption(option.id, { label: e.target.value })}
+              className={`${inputClass} ${brokenOptionIds.has(option.id) ? 'border-red-500/60' : ''}`}
+            />
+            <select
+              value={option.nextNodeId ?? ''}
+              onChange={(e) => patchOption(option.id, { nextNodeId: e.target.value || null })}
+              className={inputClass}
+            >
+              <option value="">(cerrar)</option>
+              {allNodes.map((n, i) => (
+                <option key={n.id} value={n.id}>
+                  → Nodo {i + 1}
+                </option>
+              ))}
+            </select>
+            <select
+              value={option.effect}
+              onChange={(e) => patchOption(option.id, { effect: e.target.value as DialogueEffect })}
+              className={inputClass}
+            >
+              {(Object.keys(DIALOGUE_EFFECT_LABELS) as DialogueEffect[]).map((ef) => (
+                <option key={ef} value={ef}>
+                  {DIALOGUE_EFFECT_LABELS[ef]}
+                </option>
+              ))}
+            </select>
+            <button type="button" onClick={() => removeOption(option.id)} className="rounded p-1 text-slate-500 hover:bg-surface-2 hover:text-red-400">
+              <Trash2 size={12} />
+            </button>
+          </div>
+        ))}
+        <button type="button" onClick={addOption} className="self-start text-[11px] text-slate-400 hover:text-accent">
+          + Añadir opción
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ===== Misión (pasos conectados al mapa) =====
+
+function QuestTab({
+  config,
+  patch,
+  targetOptions
+}: {
+  config: NpcConfig
+  patch(p: Partial<NpcConfig>): void
+  targetOptions: Array<{ id: string; name: string; type: string }>
+}): JSX.Element {
   const quest = config.quest
   if (!quest) {
     return (
@@ -253,7 +386,7 @@ function QuestTab({ config, patch }: { config: NpcConfig; patch(p: Partial<NpcCo
         <p className="text-xs text-slate-500">Este NPC no tiene misión asignada.</p>
         <button
           type="button"
-          onClick={() => patch({ quest: { title: '', description: '', status: 'available' } })}
+          onClick={() => patch({ quest: { title: '', description: '', status: 'available', steps: [] } })}
           className="flex items-center gap-1.5 rounded-md border border-surface-border px-3 py-1.5 text-xs text-slate-200 hover:bg-surface-2"
         >
           <Plus size={13} /> Añadir misión
@@ -261,25 +394,24 @@ function QuestTab({ config, patch }: { config: NpcConfig; patch(p: Partial<NpcCo
       </div>
     )
   }
+
+  const setQuest = (partial: Partial<typeof quest>): void => patch({ quest: { ...quest, ...partial } })
+  const patchStep = (id: string, partial: Partial<QuestStep>): void =>
+    setQuest({ steps: quest.steps.map((s) => (s.id === id ? { ...s, ...partial } : s)) })
+  const addStep = (): void =>
+    setQuest({ steps: [...quest.steps, { id: newQuestStepId(), description: '', targetWorldId: null }] })
+  const removeStep = (id: string): void => setQuest({ steps: quest.steps.filter((s) => s.id !== id) })
+
   return (
     <div className="flex flex-col gap-3">
       <Field label="Título de la misión">
-        <input value={quest.title} onChange={(e) => patch({ quest: { ...quest, title: e.target.value } })} className={inputClass} />
+        <input value={quest.title} onChange={(e) => setQuest({ title: e.target.value })} className={inputClass} />
       </Field>
       <Field label="Descripción">
-        <textarea
-          value={quest.description}
-          rows={3}
-          onChange={(e) => patch({ quest: { ...quest, description: e.target.value } })}
-          className={`${inputClass} resize-none`}
-        />
+        <textarea value={quest.description} rows={2} onChange={(e) => setQuest({ description: e.target.value })} className={`${inputClass} resize-none`} />
       </Field>
       <Field label="Estado">
-        <select
-          value={quest.status}
-          onChange={(e) => patch({ quest: { ...quest, status: e.target.value as NpcQuestStatus } })}
-          className={inputClass}
-        >
+        <select value={quest.status} onChange={(e) => setQuest({ status: e.target.value as NpcQuestStatus })} className={inputClass}>
           {(Object.keys(QUEST_STATUS_LABELS) as NpcQuestStatus[]).map((s) => (
             <option key={s} value={s}>
               {QUEST_STATUS_LABELS[s]}
@@ -287,6 +419,46 @@ function QuestTab({ config, patch }: { config: NpcConfig; patch(p: Partial<NpcCo
           ))}
         </select>
       </Field>
+
+      <div>
+        <div className="mb-1 flex items-center gap-2">
+          <Flag size={12} className="text-slate-500" />
+          <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Pasos (objetivo en el mapa)</span>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          {quest.steps.length === 0 && <p className="text-[11px] text-slate-500">Sin pasos. Cada paso puede apuntar a un pin del mapa.</p>}
+          {quest.steps.map((step, i) => (
+            <div key={step.id} className="grid grid-cols-[16px_1fr_1fr_24px] items-center gap-1.5">
+              <span className="text-right text-[10px] text-slate-500">{i + 1}</span>
+              <input
+                value={step.description}
+                placeholder="Descripción del paso"
+                onChange={(e) => patchStep(step.id, { description: e.target.value })}
+                className={inputClass}
+              />
+              <select
+                value={step.targetWorldId ?? ''}
+                onChange={(e) => patchStep(step.id, { targetWorldId: e.target.value || null })}
+                className={inputClass}
+              >
+                <option value="">(sin objetivo)</option>
+                {targetOptions.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+              <button type="button" onClick={() => removeStep(step.id)} className="rounded p-1 text-slate-500 hover:bg-surface-2 hover:text-red-400">
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+          <button type="button" onClick={addStep} className="self-start text-[11px] text-slate-400 hover:text-accent">
+            + Añadir paso
+          </button>
+        </div>
+      </div>
+
       <button
         type="button"
         onClick={() => patch({ quest: null })}
@@ -298,18 +470,38 @@ function QuestTab({ config, patch }: { config: NpcConfig; patch(p: Partial<NpcCo
   )
 }
 
+// ===== Probar (recorre el diálogo + simula interacción) =====
+
 function TestTab({ config }: { config: NpcConfig }): JSX.Element {
   const [distanceM, setDistanceM] = useState(10)
   const [playerLevel, setPlayerLevel] = useState(5)
+  const [currentNodeId, setCurrentNodeId] = useState<string | null>(() => getStartNode(config.dialogue)?.id ?? null)
+  const [log, setLog] = useState<string[]>([])
 
-  const result = simulateNpcInteraction({
+  const interaction = simulateNpcInteraction({
     distanceM,
     interactionRadiusM: config.interactionRadiusM,
     playerLevel,
     minLevel: config.minLevel,
     action: config.action,
-    hasDialogue: config.dialogue.length > 0
+    hasDialogue: config.dialogue.nodes.length > 0
   })
+
+  const currentNode = currentNodeId ? config.dialogue.nodes.find((n) => n.id === currentNodeId) ?? null : null
+
+  const reset = (): void => {
+    setCurrentNodeId(getStartNode(config.dialogue)?.id ?? null)
+    setLog([])
+  }
+
+  const choose = (optionId: string, label: string, effect: DialogueEffect): void => {
+    const step = advanceDialogue(config.dialogue, optionId)
+    const notes: string[] = [`▸ ${label}`]
+    if (effect !== 'none') notes.push(`   ⚡ Efecto: ${DIALOGUE_EFFECT_LABELS[effect]}`)
+    if (!step || (!step.nextNode && effect === 'end')) notes.push('   — fin del diálogo —')
+    setLog((l) => [...l, ...notes])
+    setCurrentNodeId(step?.nextNode?.id ?? null)
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -323,17 +515,51 @@ function TestTab({ config }: { config: NpcConfig }): JSX.Element {
       </div>
       <div
         className={`flex items-center gap-2 rounded-md border px-3 py-2 text-xs ${
-          result.ok
-            ? 'border-green-500/40 bg-green-500/10 text-green-300'
-            : 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+          interaction.ok ? 'border-green-500/40 bg-green-500/10 text-green-300' : 'border-amber-500/40 bg-amber-500/10 text-amber-300'
         }`}
       >
         <FlaskConical size={14} />
-        <span>{result.message}</span>
+        <span>{interaction.message}</span>
       </div>
-      <p className="text-[10px] text-slate-600">
-        Simulación local del editor. En producción el servidor valida distancia, condiciones y recompensas.
-      </p>
+
+      <div className="rounded-md border border-surface-border bg-surface-2/40 p-3">
+        <div className="mb-2 flex items-center gap-2">
+          <Play size={12} className="text-accent" />
+          <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Recorrer diálogo</span>
+          <button type="button" onClick={reset} className="ml-auto flex items-center gap-1 text-[11px] text-slate-400 hover:text-accent">
+            <RotateCcw size={11} /> Reiniciar
+          </button>
+        </div>
+        {config.dialogue.nodes.length === 0 ? (
+          <p className="text-[11px] text-slate-500">No hay diálogo que recorrer.</p>
+        ) : currentNode ? (
+          <div className="flex flex-col gap-2">
+            <p className="rounded bg-surface-1 px-2 py-1.5 text-xs text-slate-200">{currentNode.text || '(nodo sin texto)'}</p>
+            <div className="flex flex-col gap-1">
+              {currentNode.options.length === 0 && <span className="text-[11px] text-slate-500">(nodo sin opciones — fin)</span>}
+              {currentNode.options.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => choose(o.id, o.label, o.effect)}
+                  className="rounded border border-surface-border px-2 py-1 text-left text-xs text-slate-200 hover:bg-surface-2"
+                >
+                  {o.label}
+                  {o.effect !== 'none' && <span className="ml-2 text-[10px] text-accent">[{DIALOGUE_EFFECT_LABELS[o.effect]}]</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="text-[11px] text-slate-500">— fin del diálogo — pulsa Reiniciar para volver a empezar.</p>
+        )}
+        {log.length > 0 && (
+          <pre className="mt-2 max-h-24 overflow-y-auto whitespace-pre-wrap rounded bg-surface-1 px-2 py-1 text-[10px] text-slate-400">
+            {log.join('\n')}
+          </pre>
+        )}
+      </div>
+      <p className="text-[10px] text-slate-600">Simulación local del editor. En producción el servidor valida distancia, condiciones y recompensas.</p>
     </div>
   )
 }

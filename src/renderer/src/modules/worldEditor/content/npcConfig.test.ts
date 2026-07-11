@@ -4,9 +4,11 @@ import {
   writeNpcConfig,
   npcPinBadge,
   simulateNpcInteraction,
+  validateNpcReferences,
   DEFAULT_NPC_CONFIG,
   type NpcConfig
 } from './npcConfig'
+import { buildLinearGraphFromLines } from './dialogueGraph'
 
 describe('config de NPC', () => {
   it('devuelve valores por defecto cuando no hay propiedades', () => {
@@ -21,11 +23,17 @@ describe('config de NPC', () => {
     expect(cfg.minLevel).toBe(0)
   })
 
-  it('normaliza líneas de diálogo y asigna id si falta', () => {
-    const cfg = readNpcConfig({ npc: { dialogue: [{ text: 'Hola' }] } })
-    expect(cfg.dialogue).toHaveLength(1)
-    expect(cfg.dialogue[0].text).toBe('Hola')
-    expect(cfg.dialogue[0].id).toBeTruthy()
+  it('migra líneas de diálogo antiguas a un grafo lineal', () => {
+    const cfg = readNpcConfig({ npc: { dialogue: [{ text: 'Hola' }, { text: 'Adiós' }] } })
+    expect(cfg.dialogue.nodes).toHaveLength(2)
+    expect(cfg.dialogue.startNodeId).toBe(cfg.dialogue.nodes[0].id)
+    expect(cfg.dialogue.nodes[0].options[0].nextNodeId).toBe(cfg.dialogue.nodes[1].id)
+  })
+
+  it('lee un grafo de diálogo ya existente sin volver a migrar', () => {
+    const dialogue = buildLinearGraphFromLines([{ id: 'n1', text: 'A' }])
+    const cfg = readNpcConfig({ npc: { dialogue } })
+    expect(cfg.dialogue.nodes[0].id).toBe('n1')
   })
 
   it('round-trip: escribir y leer devuelve la misma config, conservando otras propiedades', () => {
@@ -34,8 +42,13 @@ describe('config de NPC', () => {
       action: 'give_quest',
       interactionRadiusM: 40,
       minLevel: 3,
-      dialogue: [{ id: 'l1', text: '¿Buscas trabajo?' }],
-      quest: { title: 'La espada rota', description: 'Trae 3 lingotes', status: 'available' }
+      dialogue: buildLinearGraphFromLines([{ id: 'l1', text: '¿Buscas trabajo?' }]),
+      quest: {
+        title: 'La espada rota',
+        description: 'Trae 3 lingotes',
+        status: 'available',
+        steps: [{ id: 's1', description: 'Ir a la mina', targetWorldId: 'w_mina' }]
+      }
     }
     const props = writeNpcConfig({ shop: { x: 1 } }, config)
     expect(props.shop).toEqual({ x: 1 })
@@ -45,13 +58,38 @@ describe('config de NPC', () => {
 
 describe('indicador visual del pin NPC', () => {
   it('muestra ! con misión disponible y ? con misión lista', () => {
-    expect(npcPinBadge({ ...DEFAULT_NPC_CONFIG, quest: { title: 'x', description: '', status: 'available' } })).toBe('!')
-    expect(npcPinBadge({ ...DEFAULT_NPC_CONFIG, quest: { title: 'x', description: '', status: 'ready' } })).toBe('?')
+    expect(npcPinBadge({ ...DEFAULT_NPC_CONFIG, quest: { title: 'x', description: '', status: 'available', steps: [] } })).toBe('!')
+    expect(npcPinBadge({ ...DEFAULT_NPC_CONFIG, quest: { title: 'x', description: '', status: 'ready', steps: [] } })).toBe('?')
   })
 
   it('muestra carrito para comerciante y nada para diálogo simple', () => {
     expect(npcPinBadge({ ...DEFAULT_NPC_CONFIG, action: 'open_shop' })).toBe('🛒')
     expect(npcPinBadge(DEFAULT_NPC_CONFIG)).toBeNull()
+  })
+})
+
+describe('validación de referencias del NPC', () => {
+  it('marca un paso de misión cuyo pin objetivo ya no existe', () => {
+    const config: NpcConfig = {
+      ...DEFAULT_NPC_CONFIG,
+      quest: { title: 'x', description: '', status: 'available', steps: [{ id: 's1', description: 'Ir', targetWorldId: 'w_borrado' }] }
+    }
+    const errors = validateNpcReferences(config, new Set(['w_otro']))
+    expect(errors.some((e) => e.code === 'quest_step_missing_target')).toBe(true)
+  })
+
+  it('no marca error si el pin objetivo existe', () => {
+    const config: NpcConfig = {
+      ...DEFAULT_NPC_CONFIG,
+      action: 'give_quest', // evita el aviso de "hablar sin diálogo"
+      quest: { title: 'x', description: '', status: 'available', steps: [{ id: 's1', description: 'Ir', targetWorldId: 'w1' }] }
+    }
+    expect(validateNpcReferences(config, new Set(['w1']))).toHaveLength(0)
+  })
+
+  it('avisa si la acción es hablar pero no hay diálogo', () => {
+    const errors = validateNpcReferences({ ...DEFAULT_NPC_CONFIG, action: 'talk' }, new Set())
+    expect(errors.some((e) => e.code === 'no_dialogue_for_talk')).toBe(true)
   })
 })
 
