@@ -24,7 +24,9 @@ import { ZonesPanel } from './ZonesPanel'
 import { EntityInspector } from './EntityInspector'
 import { MapContextMenu, type MapMenuContext } from './MapContextMenu'
 import { OsmImportModal } from './OsmImportModal'
+import { ShopModal } from './ShopModal'
 import { makeClipboardEntry, buildPasteRequest } from '../utils/clipboard'
+import type { WorldEntityUI } from '../types'
 import { Layers, Map as MapIcon, Hexagon, Download, List } from 'lucide-react'
 
 /** Color del punto de estado de sincronización que se muestra sobre cada marcador. */
@@ -279,6 +281,8 @@ export function WorldMapPanel(): JSX.Element {
   // Menú contextual y modal OSM
   const [contextMenu, setContextMenu] = useState<MapMenuContext | null>(null)
   const [osmZone, setOsmZone] = useState<WorldZone | null>(null)
+  // Entidad cuya interacción (tienda/NPC) está abierta en modal.
+  const [shopEntity, setShopEntity] = useState<WorldEntityUI | null>(null)
   // Aviso efímero (p. ej. "1 elemento copiado / pegado").
   const [notice, setNotice] = useState<string | null>(null)
   const mapRef = useRef<LeafletMap | null>(null)
@@ -416,6 +420,14 @@ export function WorldMapPanel(): JSX.Element {
     selectEntity(worldId)
     const entity = useWorldEditorStore.getState().entities.find((e) => e.worldId === worldId)
     if (entity) mapRef.current?.panTo([entity.position.lat, entity.position.lng])
+  }
+
+  // Abre la interacción real del pin según su tipo (tienda, NPC, …).
+  const handleOpenInteraction = (entity: WorldEntityUI): void => {
+    selectEntity(entity.worldId)
+    if (entity.entityType === WorldEntityType.Shop) {
+      setShopEntity(entity)
+    }
   }
 
   const startZone = (firstPoint?: Position): void => {
@@ -675,6 +687,7 @@ export function WorldMapPanel(): JSX.Element {
                 icon={makeDivIcon(entity.entityType, entity.worldId === selectedEntityId, entity.syncStatus)}
                 eventHandlers={{
                   click: () => selectEntity(entity.worldId),
+                  dblclick: () => handleOpenInteraction(entity),
                   contextmenu: (event: LeafletMouseEvent) => {
                     event.originalEvent.preventDefault()
                     L.DomEvent.stopPropagation(event)
@@ -775,6 +788,7 @@ export function WorldMapPanel(): JSX.Element {
               onDeleteZone={(zone) => void deleteZone(zone)}
               onSelectEntity={(worldId) => selectEntity(worldId)}
               onOpenProperties={(worldId) => handleOpenProperties(worldId)}
+              onOpenInteraction={(entity) => handleOpenInteraction(entity)}
               onCopyEntity={(worldId) => handleCopy(worldId)}
               onCutEntity={(worldId) => handleCut(worldId)}
               onPasteAt={(position) => void handlePasteAt(position)}
@@ -790,6 +804,8 @@ export function WorldMapPanel(): JSX.Element {
             </div>
           )}
 
+          {shopEntity && <ShopModal entity={shopEntity} onClose={() => setShopEntity(null)} />}
+
           {osmZone && (
             <OsmImportModal
               zone={osmZone}
@@ -801,7 +817,7 @@ export function WorldMapPanel(): JSX.Element {
       </div>
 
       <div className="w-72 shrink-0 border-l border-surface-border">
-        <EntityInspector onDelete={handleDelete} />
+        <EntityInspector onDelete={handleDelete} onOpenInteraction={handleOpenInteraction} />
       </div>
     </div>
   )

@@ -1,13 +1,16 @@
-import { Trash2, Copy, Power } from 'lucide-react'
+import { Trash2, Copy, Power, Store } from 'lucide-react'
+import { WorldEntityType } from '@shared-types/world'
 import { useSelectedEntity, useWorldEditorStore } from '../hooks/useWorldEditorStore'
 import { WorldEditorService } from '../services/entityService'
 import { TextField } from '@renderer/shared/components/inspector/fields'
+import type { WorldEntityUI } from '../types'
 
 interface EntityInspectorProps {
   onDelete(worldId: string): void
+  onOpenInteraction(entity: WorldEntityUI): void
 }
 
-export function EntityInspector({ onDelete }: EntityInspectorProps): JSX.Element {
+export function EntityInspector({ onDelete, onOpenInteraction }: EntityInspectorProps): JSX.Element {
   const entity = useSelectedEntity()
   const updateEntity = useWorldEditorStore((s) => s.updateEntity)
   const addEntity = useWorldEditorStore((s) => s.addEntity)
@@ -63,6 +66,15 @@ export function EntityInspector({ onDelete }: EntityInspectorProps): JSX.Element
       </div>
 
       <div className="flex flex-col gap-1.5">
+        {entity.entityType === WorldEntityType.Shop && (
+          <button
+            type="button"
+            onClick={() => onOpenInteraction(entity)}
+            className="flex items-center gap-2 rounded-md border border-accent bg-accent-muted px-3 py-1.5 text-sm text-accent hover:brightness-110"
+          >
+            <Store size={14} /> Abrir tienda
+          </button>
+        )}
         <button
           type="button"
           onClick={handleToggle}

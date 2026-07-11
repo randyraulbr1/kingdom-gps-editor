@@ -55,6 +55,7 @@ interface Props {
   onDeleteZone(zone: WorldZone): void
   onSelectEntity(worldId: string): void
   onOpenProperties(worldId: string): void
+  onOpenInteraction(entity: WorldEntityUI): void
   onCopyEntity(worldId: string): void
   onCutEntity(worldId: string): void
   onPasteAt(position: Position): void
@@ -162,6 +163,20 @@ function renderEntityMenu(props: Props, entity: WorldEntityUI): JSX.Element {
         {getEntityIcon(entity.entityType)} {entity.name}
       </div>
       <Separator />
+
+      {entity.entityType === WorldEntityType.Shop && (
+        <>
+          <MenuItem
+            icon={<Store size={13} />}
+            label="Abrir tienda"
+            onClick={() => {
+              props.onOpenInteraction(entity)
+              onClose()
+            }}
+          />
+          <Separator />
+        </>
+      )}
 
       <MenuItem
         icon={<Crosshair size={13} />}
