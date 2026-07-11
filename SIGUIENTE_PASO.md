@@ -1,94 +1,101 @@
 # SIGUIENTE PASO — Punto de retorno de Kingdom GPS Editor
 
-> Documento de continuidad. Léelo primero al retomar el proyecto (en el PC o
-> desde el móvil). Mantenerlo actualizado al final de cada sesión.
-> Última actualización: 2026-07-10.
+> Documento de continuidad. Léelo primero al retomar el proyecto y mantenlo actualizado al final de cada sesión.
+> Última actualización: 2026-07-11.
 
-## Qué es esto
+## Qué es
 
-Editor de escritorio (herramienta interna, **no es el juego**) para crear y
-mantener el contenido del MMORPG **Kingdom GPS** y exportarlo.
-Stack: Electron + React + TypeScript + Vite + libSQL/Kysely + Zustand +
-dockview + Leaflet + Tailwind + Vitest.
+Editor de escritorio interno para crear y mantener contenido de **Kingdom GPS**.
+Stack: Electron + React + TypeScript + Vite + libSQL/Kysely + Zustand + dockview + Leaflet + Tailwind + Vitest.
 
-## Dónde está todo
+## Repositorio y documentación
 
-- **Código (en el PC):** `C:\Users\RANDY\Desktop\dfgj\KingdomGPS\editor`
-- **Repositorio:** https://github.com/randyraulbr1/kingdom-gps-editor (rama `main`)
-- **Documentación oficial (fuente de verdad):** carpeta [`panel adm/`](panel%20adm/README.md)
-  dentro del repo. El repo `tcodm-web` quedó **obsoleto para documentación**.
-- **Roadmap sincronizado con el código:** [`panel adm/00_ROADMAP.md`](panel%20adm/00_ROADMAP.md)
-- **Estado detallado:** [`INFORME_ESTADO_PROYECTO.md`](INFORME_ESTADO_PROYECTO.md)
+- Repositorio oficial: `randyraulbr1/kingdom-gps-editor`, rama `main`.
+- Documentación oficial: carpeta `panel adm/`.
+- Estado detallado del código: `INFORME_ESTADO_PROYECTO.md`.
 
-> Nota: la carpeta `C:\Users\RANDY\Desktop\MiProyectoKGPS` NO es el código: es un
-> *proyecto de datos* (una base SQLite) que genera la propia app.
+## Advertencia importante
 
-## Qué está hecho (resumen)
+Los documentos `14_...` a `28_...` describen especificaciones aprobadas para mapa, pines, rutas, tiendas, NPC, monstruos, loot, recursos, validación, capas, propiedades y menú tipo PC. **Esos documentos no significan que la función ya esté implementada en el programa.**
 
-- ✅ Infraestructura: proyectos, BD con migraciones, IPC tipado, undo/redo,
-  exportadores, biblioteca de iconos.
-- ✅ Módulo **Objetos** (patrón de referencia).
-- ✅ **Framework de contenido genérico** (`src/renderer/src/shared/content/`):
-  ContentGrid/List/Table, toolbar, store y panel reutilizables.
-- ✅ Módulo **Armas** montado sobre ese framework (migración `006_weapons`).
-- ✅ **Editor de Mundo**: mapa GPS (Leaflet, varios estilos, vista recordada),
-  entidades, menú contextual estilo PC, **zonas** (polígonos: crear/renombrar/
-  color/eliminar), **importar lugares reales de OpenStreetMap** dentro de una
-  zona, **exportar mundo a `export/world.json`**, indicador de estado de sync.
+No marcar una característica como terminada hasta que exista código, pruebas y verificación en Windows.
 
-## Qué sigue (elige uno al retomar)
+## Código confirmado en GitHub
 
-1. **Completar Armas** — añadir undo/redo y exportación JSON (Objetos ya los
-   tiene), y **migrar Objetos al framework** de contenido para unificar.
-2. **Producir más módulos en serie** — Armaduras, Herramientas, Recursos,
-   Comida, NPC, Monstruos… (ahora es barato: repetir el patrón de Armas).
-3. **Fase 4 — Gestor de Sistemas** (doc 04): Monaco Editor, versiones
-   candidatas, diff, rollback. La fase más grande.
-4. **Otras fases documentadas**: Vista del juego (doc 03), Generador de misiones
-   GPS (doc 08), Zonas por jugador (doc 12), Seguridad/Tops (docs 09/13, requieren
-   servidor).
+- Infraestructura de proyectos, base de datos, IPC, exportadores y undo/redo.
+- Biblioteca de iconos.
+- Módulo Objetos.
+- Módulo Armas base.
+- Editor de Mundo con Leaflet, entidades, zonas, importación OpenStreetMap y exportación de mundo.
 
-Recomendación por defecto: **opción 1 o 2** (avance de producto de bajo riesgo).
+## Trabajo de Claude pendiente de integrar
 
-## Cómo continuar el trabajo
+Claude informó un commit local `b10849d` con:
 
-### Flujo de git (cualquier dispositivo)
-Los cambios se commitean y se suben al repo:
+- Armas: undo/redo, exportación y pruebas.
+- Armaduras: módulo nuevo y migración `007_armor`.
+- Objetos migrado al framework genérico.
+- 37 pruebas verdes y typecheck limpio.
+
+Ese trabajo llegó como archivo `.patch`, pero el commit todavía no aparece integrado en `main`. No duplicar esas modificaciones antes de comprobar o aplicar el parche.
+
+## Lo que falta realmente en código
+
+### Prioridad 0 — integrar y verificar
+
+1. Integrar el parche de Claude.
+2. Ejecutar `npm run typecheck`, `npm test` y `npm run build` en Windows.
+3. Confirmar que Armas, Armaduras y Objetos aparecen y funcionan.
+
+### Prioridad 1 — Editor de Mundo
+
+1. Corregir el menú de clic derecho:
+   - un clic derecho nuevo reemplaza al anterior;
+   - nunca queda cortado en los bordes;
+   - se cierra con clic fuera y Escape;
+   - muestra acciones según el elemento seleccionado.
+2. Añadir acciones tipo PC: copiar, cortar, pegar aquí, duplicar y Propiedades.
+3. Conectar el inspector de cada pin con contenido real.
+4. Hacer funcional primero el pin Tienda.
+5. Hacer funcional después el pin NPC.
+
+### Prioridad 2 — módulos necesarios para el mapa
+
+1. Tiendas y catálogos.
+2. NPC.
+3. Diálogos.
+4. Misiones.
+5. Monstruos.
+6. Loot y cofres.
+7. Recursos.
+
+### Prioridad 3 — sistemas de seguridad del editor
+
+- Administrador de referencias.
+- Validador del mundo antes de publicar.
+- Capas, filtros y búsqueda.
+- Panel de propiedades unificado.
+
+## Criterio de terminado
+
+Una función solo se marca como hecha cuando:
+
+- está implementada en código;
+- tiene persistencia;
+- tiene undo/redo cuando corresponde;
+- tiene pruebas;
+- pasa typecheck y build;
+- fue probada visualmente en el programa de Windows;
+- se actualizó documentación y roadmap.
+
+## Próxima tarea recomendada
+
+**Primero integrar el parche de Claude. Después corregir el menú contextual del Editor de Mundo y hacer que un pin de Tienda abra una tienda real.**
+
+## Comandos de comprobación en el PC
+
 ```bash
-git add -A
-git commit -m "mensaje claro"
-git push
+npm run typecheck
+npm test
+npm run build
 ```
-El remoto (`origin`) y las credenciales ya están configurados en el PC.
-
-### Verificar antes de dar algo por hecho (en el PC)
-```bash
-cd KingdomGPS/editor
-npm run typecheck   # tsc main + renderer
-npm test            # vitest
-npm run build       # genera dist/kingdomgps-editor Setup 0.1.0.exe
-```
-El instalador se copia al Escritorio como `KingdomGPS-Editor-Setup.exe`.
-
-### Límites conocidos del entorno
-- **Solo el PC (Windows) puede compilar el `.exe` y ejecutar la app.** Desde el
-  móvil se puede planificar, editar y subir código, pero no compilar/ejecutar.
-- En el entorno del agente, `npm run dev` no arranca porque `ELECTRON_RUN_AS_NODE`
-  está definida (Electron corre como Node plano). Workaround: `unset
-  ELECTRON_RUN_AS_NODE` (o `Remove-Item Env:ELECTRON_RUN_AS_NODE`) antes.
-
-## Reglas del proyecto
-
-- La documentación nueva se crea en `panel adm/` (fuente única de verdad).
-- Al implementar o cambiar algo, actualizar el roadmap y/o el informe en el
-  mismo cambio (código y documentación sincronizados).
-- Ver la guía de calidad: [`panel adm/11_GUIA_DE_INTEGRACION_Y_CALIDAD.md`](panel%20adm/11_GUIA_DE_INTEGRACION_Y_CALIDAD.md).
-
-## Deuda técnica anotada
-
-- Objetos aún usa sus propios componentes (no migrado al framework todavía).
-- Armas no tiene undo/redo ni export JSON aún.
-- Bundle del renderer sin code-splitting (~2.4 MB); revisar antes de sumar
-  muchos módulos.
-- `npm audit`: vulnerabilidades en dependencias de build (revisar antes de un
-  release público). Instalador sin firmar.
