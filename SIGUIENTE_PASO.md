@@ -1,7 +1,7 @@
 # SIGUIENTE PASO — Punto de retorno de Kingdom GPS Editor
 
 > Documento de continuidad. Léelo primero al retomar el proyecto y mantenlo actualizado al final de cada sesión.
-> Última actualización: 2026-07-11.
+> Última actualización: 2026-07-11 (sesión: integración de parche + menú contextual + pines Tienda y NPC).
 
 ## Qué es
 
@@ -24,57 +24,72 @@ No marcar una característica como terminada hasta que exista código, pruebas y
 
 - Infraestructura de proyectos, base de datos, IPC, exportadores y undo/redo.
 - Biblioteca de iconos.
-- Módulo Objetos.
-- Módulo Armas base.
+- Módulo Objetos (sobre el framework de contenido genérico).
+- Módulo Armas (undo/redo + export).
+- Módulo Armaduras (migración `007_armor`, undo/redo + export).
 - Editor de Mundo con Leaflet, entidades, zonas, importación OpenStreetMap y exportación de mundo.
+- **Menú contextual estilo PC** del Editor de Mundo (copiar/cortar/pegar/duplicar/Propiedades + atajos).
+- **Pin Tienda funcional** (ficha con catálogo local + simulador de compra).
+- **Pin NPC funcional** (diálogo + misión + simulador de interacción + indicadores `!`/`?`/🛒).
 
-## Trabajo de Claude pendiente de integrar
+## Trabajo completado en esta sesión
 
-Claude informó un commit local `b10849d` con:
+### Prioridad 0 — parche de Claude: INTEGRADO ✅
 
-- Armas: undo/redo, exportación y pruebas.
-- Armaduras: módulo nuevo y migración `007_armor`.
-- Objetos migrado al framework genérico.
-- 37 pruebas verdes y typecheck limpio.
-
-Ese trabajo llegó como archivo `.patch`, pero el commit todavía no aparece integrado en `main`. No duplicar esas modificaciones antes de comprobar o aplicar el parche.
-
-## Lo que falta realmente en código
-
-### Prioridad 0 — integrar y verificar
-
-1. Integrar el parche de Claude.
-2. Ejecutar `npm run typecheck`, `npm test` y `npm run build` en Windows.
-3. Confirmar que Armas, Armaduras y Objetos aparecen y funcionan.
+- Parche `b10849d` aplicado: Armas (undo/redo + export), módulo Armaduras nuevo
+  (migración `007_armor`) y Objetos migrado al framework de contenido genérico.
+- Verificado en este entorno: `npm run typecheck` limpio, **61/61 pruebas Vitest**,
+  y `electron-vite build` (main + preload + renderer) correcto.
+- Pendiente en Windows: `electron-builder --win` (empaquetado `.exe`, requiere
+  Windows/Wine) y la comprobación visual de que Armas/Armaduras/Objetos aparecen
+  y funcionan en la app empaquetada.
 
 ### Prioridad 1 — Editor de Mundo
 
-1. Corregir el menú de clic derecho:
-   - un clic derecho nuevo reemplaza al anterior;
-   - nunca queda cortado en los bordes;
-   - se cierra con clic fuera y Escape;
-   - muestra acciones según el elemento seleccionado.
-2. Añadir acciones tipo PC: copiar, cortar, pegar aquí, duplicar y Propiedades.
-3. Conectar el inspector de cada pin con contenido real.
-4. Hacer funcional primero el pin Tienda.
-5. Hacer funcional después el pin NPC.
+1. **Menú contextual corregido** ✅ (docs 25 y 28):
+   - un clic derecho nuevo reemplaza al anterior y se reposiciona;
+   - nunca queda cortado: voltea y además se fija dentro del panel, con scroll si es alto;
+   - se cierra con clic fuera y con Escape;
+   - acciones tipo PC: Copiar, Cortar, Pegar aquí, Duplicar, Activar/Desactivar,
+     Eliminar y **Propiedades siempre al final**;
+   - portapapeles interno del editor (copiar/cortar/pegar) con clon profundo y tests;
+   - atajos: `Ctrl+C/X/V/D`, `Supr`, `Alt+Enter`; aviso efímero de copiado/pegado.
+2. **Pin Tienda funcional** ✅ (doc 17, fase A): config en `properties.shop`
+   (tipo, radio, estado, catálogo), `ShopModal` con pestañas Resumen/Catálogo/
+   Probar, abrir desde menú/inspector/doble clic, simulador de compra. Con tests.
+3. **Pin NPC funcional** ✅ (doc 20): config en `properties.npc` (identidad,
+   acción, radio, diálogo, misión), `NpcModal` con pestañas Identidad/Diálogo/
+   Misión/Probar, indicadores visuales sobre el marcador. Con tests.
 
-### Prioridad 2 — módulos necesarios para el mapa
+> Nota de honestidad: todo lo anterior está implementado en código, persiste y
+> pasa typecheck/tests/build en este entorno. **Falta la verificación visual en
+> el Windows del usuario** (arrastre real, apertura de modales, persistencia
+> tras cerrar/abrir proyecto). No considerar 100% cerrado hasta esa prueba.
 
-1. Tiendas y catálogos.
-2. NPC.
-3. Diálogos.
-4. Misiones.
-5. Monstruos.
-6. Loot y cofres.
-7. Recursos.
+## Lo que falta realmente en código
+
+### Prioridad 1 (resto) — Editor de Mundo
+
+- Inspector unificado con pestañas (doc 27): hoy el inspector lateral es básico
+  y las fichas de Tienda/NPC viven en modales; falta unificar en un panel de
+  propiedades con pestañas General/Configuración/Interacciones/Referencias/Historial.
+- Selección múltiple y "Pegar especial" del doc 28 (hoy: 1 elemento a la vez).
+
+### Prioridad 2 — módulos necesarios para el mapa (siguiente foco)
+
+1. Diálogos como nodos conectados (hoy: lista de líneas simple en el NPC).
+2. Misiones y cadenas de misiones (hoy: misión simple embebida en el NPC).
+3. Monstruos: combate simple + loot desde el mapa (doc 21).
+4. Loot, recompensas y cofres (doc 22).
+5. Recursos, recolección y respawn (doc 23).
+6. Rutas de enemigos y spawn por zona (doc 14).
 
 ### Prioridad 3 — sistemas de seguridad del editor
 
-- Administrador de referencias.
-- Validador del mundo antes de publicar.
-- Capas, filtros y búsqueda.
-- Panel de propiedades unificado.
+- Administrador de referencias y borrado seguro (doc 19).
+- Validador del mundo antes de publicar (doc 24).
+- Capas, filtros y búsqueda (doc 26).
+- Panel de propiedades unificado (doc 27).
 
 ## Criterio de terminado
 
@@ -90,12 +105,15 @@ Una función solo se marca como hecha cuando:
 
 ## Próxima tarea recomendada
 
-**Primero integrar el parche de Claude. Después corregir el menú contextual del Editor de Mundo y hacer que un pin de Tienda abra una tienda real.**
+**Continuar la Prioridad 2 por el pin Cofre/Loot (doc 22) o Monstruo (doc 21),**
+reutilizando el mismo patrón ya probado con Tienda y NPC: modelo saneado en
+`properties`, modal con pestañas, simulador local y tests. Antes de darlo por
+cerrado, pedir al usuario la verificación visual en Windows de tienda y NPC.
 
 ## Comandos de comprobación en el PC
 
 ```bash
 npm run typecheck
 npm test
-npm run build
+npm run build   # el empaquetado .exe requiere Windows/Wine
 ```

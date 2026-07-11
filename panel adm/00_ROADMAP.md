@@ -47,11 +47,20 @@
 ✅ Capas (mostrar/ocultar por tipo)
 ✅ Marcadores (L.divIcon por tipo) con punto de estado de sincronización visible
 ✅ Inspector (nombre, tipo, posición, sync, habilitar, duplicar, eliminar)
-✅ Menú contextual estilo PC (crear pin/entidades, reposicionar con clic derecho, voltea si se sale)
+✅ Menú contextual estilo PC (docs 25 y 28): crear pin/entidades, reposicionar con clic derecho,
+   voltea y se fija dentro del panel (nunca queda cortado), Copiar/Cortar/Pegar aquí/Duplicar/
+   Activar-Desactivar/Eliminar y Propiedades al final, portapapeles interno y atajos Ctrl+C/X/V/D, Supr, Alt+Enter
 ✅ Zonas: dibujar polígono, cerrar tocando el primer punto, y panel para renombrar/color/eliminar
 ✅ Importar lugares reales de OpenStreetMap dentro de una zona (farmacias/hospitales/gasolineras/supermercados)
 ✅ Exportar mundo (entidades + zonas) a `export/world.json` (botón + registro de exportadores)
 ✅ Sincronización local (persistido en SQLite: `004_world_entities`, `005_world_zones`, ULID)
+✅ **Pin Tienda funcional** (doc 17, fase A): config en `properties.shop` (tipo, radio, estado, catálogo),
+   ficha `ShopModal` con pestañas Resumen/Catálogo/Probar, abrir desde menú/inspector/doble clic, simulador de compra
+✅ **Pin NPC funcional** (doc 20): config en `properties.npc` (identidad, acción, radio, diálogo, misión),
+   ficha `NpcModal` con pestañas Identidad/Diálogo/Misión/Probar, indicadores `!`/`?`/🛒 sobre el marcador
+🟡 Verificación visual en Windows pendiente para Tienda/NPC (código + tests + build OK en CI)
+⚪ Inspector unificado con pestañas (doc 27) — hoy inspector básico + modales por tipo
+⚪ Diálogos como nodos conectados y misiones/cadenas dedicadas (hoy: versión simple embebida en el NPC)
 ⚪ Cola `world_sync_jobs` + estados de sync avanzados (solo se maneja `local` de 10)
 ⚪ Sincronización remota (publish/retry/resolveConflict son stubs — requiere servidor)
 
