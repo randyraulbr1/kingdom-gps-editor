@@ -1,6 +1,55 @@
 # INFORME DE ESTADO DEL PROYECTO — Kingdom GPS
 
 Fecha del análisis: 2026-07-10
+Actualizado: 2026-07-11 (integración de parche + menú contextual + pines Tienda/NPC)
+
+---
+
+## 0. Resumen rápido — ¿Qué está PROGRAMADO de verdad vs. solo DOCUMENTADO?
+
+> Regla del proyecto: un documento en `panel adm/` es una **especificación**, no
+> significa que exista en el programa. Esta tabla separa código real de papel.
+
+### ✅ Programado, con pruebas y build (código real en la rama)
+
+| Función | Dónde | Pruebas |
+|---|---|---|
+| Infraestructura (proyectos, BD, IPC, undo/redo, export) | `src/main/**` | ✅ |
+| Biblioteca de iconos | `src/main/icons`, módulo `icon-library` | ✅ |
+| Módulo **Objetos** (framework de contenido) | `modules/items` | ✅ |
+| Módulo **Armas** (undo/redo + export) | `main/weapons`, `modules/weapons` | ✅ |
+| Módulo **Armaduras** (migración `007_armor`, undo/redo + export) | `main/armor`, `modules/armors` | ✅ |
+| Editor de Mundo: mapa, entidades, zonas, OSM, export | `modules/worldEditor` | ✅ |
+| **Menú contextual estilo PC** (copiar/cortar/pegar/duplicar/Propiedades, atajos, no se corta) | `worldEditor/components/MapContextMenu`, `utils/clipboard` | ✅ |
+| **Pin Tienda funcional** (ficha + catálogo + simulador de compra) | `worldEditor/components/ShopModal`, `content/shopConfig` | ✅ |
+| **Pin NPC funcional** (diálogo simple + misión + simulador + indicadores) | `worldEditor/components/NpcModal`, `content/npcConfig` | ✅ |
+
+Verificado en este entorno: `typecheck` limpio, **61/61 pruebas**, `electron-vite build` OK.
+**Pendiente:** empaquetado `.exe` (`electron-builder --win`, requiere Windows) y
+**verificación visual en el Windows del usuario** de Tienda/NPC.
+
+### 📄 Solo DOCUMENTACIÓN (spec aprobada, sin código todavía)
+
+- Diálogos como **nodos conectados** con opciones/efectos (doc 20) — hoy el NPC
+  solo tiene una lista de líneas simple. *(En progreso en la sesión actual.)*
+- **Misiones y cadenas** dedicadas conectadas al mapa (docs 08, 20) — hoy el NPC
+  tiene una misión simple embebida. *(En progreso en la sesión actual.)*
+- Monstruos / combate / loot desde el mapa (docs 14, 21, 22).
+- Recursos, recolección y respawn (doc 23).
+- Rutas de enemigos y spawn por zona (doc 14).
+- Administrador de referencias y borrado seguro (doc 19).
+- Validador del mundo y publicación (doc 24).
+- Capas, filtros y búsqueda avanzada (doc 26).
+- Panel de propiedades unificado con pestañas (doc 27) — hoy inspector básico + modales.
+- Menú "Pegar especial" y selección múltiple (doc 28) — hoy 1 elemento a la vez.
+- Todo lo que depende de servidor: sync remota, seguridad/auditoría (09),
+  zonas por jugador (12), tops/temporadas (13), economía (06).
+
+---
+
+## 1bis. Análisis original (2026-07-10)
+
+Fecha del análisis: 2026-07-10
 Fuente de verdad: **`panel adm/`** (documentación oficial importada desde
 `github.com/randyraulbr1/tcodm-web/tree/main/panel%20adm`), contrastada contra
 el código real. Cuando el código demuestra que algo ya funciona, se marca como
@@ -98,8 +147,10 @@ El "Panel ADM" de la documentación **es** este editor de escritorio. Estado por
 |---|---|---|
 | Infraestructura (proyectos, BD, IPC, undo/redo, export) | ✅ Completo | Fase 1 real terminada y probada |
 | Biblioteca de iconos (doc 05, parte biblioteca) | ✅ Completo | escaneo, tags, favoritos, dedup SHA-256, resize sharp, `kgps-icon://` |
-| Editor de Objetos (doc 01) | ✅ Completo | rejilla/lista/tabla, Inspector ~20 campos, edición masiva, undo/redo, export |
-| Editor de Mundo — local (doc 02) | 🟡 Casi completo | mapa OSM, marcadores, capas, mover, inspector, persistido en SQLite; falta menú contextual real, cola `world_sync_jobs`, estados visuales de sync |
+| Editor de Objetos (doc 01) | ✅ Completo | rejilla/lista/tabla, Inspector ~20 campos, edición masiva, undo/redo, export (migrado al framework de contenido) |
+| Editor de Armas | ✅ Completo | framework de contenido, migración `006_weapons`, undo/redo + export |
+| Editor de Armaduras | ✅ Completo | framework de contenido, migración `007_armor`, undo/redo + export |
+| Editor de Mundo — local (doc 02) | 🟡 Casi completo | mapa OSM, marcadores, capas, mover, inspector, persistido en SQLite; **menú contextual estilo PC implementado**, **pines Tienda y NPC funcionales**; falta cola `world_sync_jobs`, estados visuales de sync, inspector unificado |
 | Generador IA de iconos / Recraft (doc 05) | 🔴 Pendiente | sin cola `icon_generation_jobs`, sin `.env`/token, sin integración Recraft |
 | Vista integrada del juego (doc 03) | 🔴 Pendiente | sin `WebContentsView`, sin carga de `tcodm.com`/localhost, sin consola integrada |
 | Gestor de sistemas versionados (doc 04) | 🔴 Pendiente | sin Monaco, sin versiones/candidatas, sin diff, sin rollback, sin adaptadores |
@@ -111,7 +162,7 @@ El "Panel ADM" de la documentación **es** este editor de escritorio. Estado por
 | Economía futura (doc 06) | ⚪ Futuro | marcado explícitamente "no implementar ahora" |
 | Funciones planificadas (doc 07) | ⚪ Futuro | historias, IA NPC, laboratorio, buscador global, etc. |
 | Módulo Herramientas del editor | 🟡 Placeholder | panel que lista utilidades previstas, sin lógica |
-| 21 módulos de contenido restantes | 🔴 Placeholder | Armas, NPC, Misiones… solo cascarón de UI |
+| ~18 módulos de contenido restantes | 🔴 Placeholder | Herramientas, Recursos, Comida, Monstruos, Misiones… solo cascarón de UI (Objetos/Armas/Armaduras ya reales) |
 
 **Módulos registrados en el sidebar: 25** (22 de contenido + Herramientas +
 Biblioteca de Iconos + Editor de Mundo). De ellos, **solo Objetos, Biblioteca
