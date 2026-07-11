@@ -9,6 +9,7 @@ import type {
   Position,
   MapMode
 } from '@shared-types/world'
+import type { ClipboardEntry } from './utils/clipboard'
 
 /**
  * Estado expandido de una entidad en el renderer.
@@ -57,6 +58,9 @@ export interface WorldEditorState {
   layersOpen: boolean
   filterText: string
 
+  /** Portapapeles interno del editor (copiar/cortar/pegar, doc 28). */
+  clipboard: ClipboardEntry | null
+
   // Estado de carga
   isLoading: boolean
   isSaving: boolean
@@ -73,6 +77,9 @@ export interface WorldEditorActions {
   removeEntity(worldId: string): void
   selectEntity(worldId: string | null): void
   duplicateEntity(worldId: string): void
+
+  // Portapapeles interno (doc 28)
+  setClipboard(entry: ClipboardEntry | null): void
 
   // Mapa
   setMapMode(mode: MapMode): void

@@ -84,6 +84,9 @@ const initialState = {
   layersOpen: false,
   filterText: '',
 
+  // Portapapeles interno (copiar/cortar/pegar, doc 28)
+  clipboard: null,
+
   // Estado
   isLoading: false,
   isSaving: false,
@@ -138,6 +141,12 @@ export const useWorldEditorStore = create<WorldEditorStore>()(
           }
 
           set((s) => ({ entities: [...s.entities, copy] }))
+        },
+
+        // ========== Portapapeles interno (doc 28) ==========
+
+        setClipboard(entry) {
+          set({ clipboard: entry })
         },
 
         // ========== Mapa ==========

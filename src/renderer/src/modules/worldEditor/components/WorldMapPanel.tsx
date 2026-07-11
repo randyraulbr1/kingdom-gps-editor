@@ -24,6 +24,7 @@ import { ZonesPanel } from './ZonesPanel'
 import { EntityInspector } from './EntityInspector'
 import { MapContextMenu, type MapMenuContext } from './MapContextMenu'
 import { OsmImportModal } from './OsmImportModal'
+import { makeClipboardEntry, buildPasteRequest } from '../utils/clipboard'
 import { Layers, Map as MapIcon, Hexagon, Download, List } from 'lucide-react'
 
 /** Color del punto de estado de sincronización que se muestra sobre cada marcador. */
@@ -234,6 +235,8 @@ export function WorldMapPanel(): JSX.Element {
   const updateEntity = useWorldEditorStore((s) => s.updateEntity)
   const removeEntity = useWorldEditorStore((s) => s.removeEntity)
   const setLoading = useWorldEditorStore((s) => s.setLoading)
+  const clipboard = useWorldEditorStore((s) => s.clipboard)
+  const setClipboard = useWorldEditorStore((s) => s.setClipboard)
 
   const [placing, setPlacing] = useState<WorldEntityType | ''>('')
   const [layersOpen, setLayersOpen] = useState(false)
@@ -276,6 +279,8 @@ export function WorldMapPanel(): JSX.Element {
   // Menú contextual y modal OSM
   const [contextMenu, setContextMenu] = useState<MapMenuContext | null>(null)
   const [osmZone, setOsmZone] = useState<WorldZone | null>(null)
+  // Aviso efímero (p. ej. "1 elemento copiado / pegado").
+  const [notice, setNotice] = useState<string | null>(null)
   const mapRef = useRef<LeafletMap | null>(null)
 
   // Cerrar el menú contextual con Escape (comportamiento de editor de escritorio).
@@ -356,6 +361,61 @@ export function WorldMapPanel(): JSX.Element {
   const handleDuplicate = async (worldId: string): Promise<void> => {
     const copy = await WorldEditorService.duplicateEntity(worldId)
     addEntity({ ...copy, isSelected: false, isEditing: false })
+    selectEntity(copy.worldId)
+  }
+
+  const handleToggle = async (worldId: string): Promise<void> => {
+    const updated = await WorldEditorService.toggleEntity(worldId)
+    updateEntity(worldId, updated)
+  }
+
+  // ===== Portapapeles interno: copiar / cortar / pegar (doc 28) =====
+
+  const flash = (message: string): void => {
+    setNotice(message)
+    window.setTimeout(() => setNotice((current) => (current === message ? null : current)), 1600)
+  }
+
+  const handleCopy = (worldId: string): void => {
+    const entity = useWorldEditorStore.getState().entities.find((e) => e.worldId === worldId)
+    if (!entity) return
+    setClipboard(makeClipboardEntry(entity, 'copy'))
+    flash('1 elemento copiado')
+  }
+
+  const handleCut = (worldId: string): void => {
+    const entity = useWorldEditorStore.getState().entities.find((e) => e.worldId === worldId)
+    if (!entity) return
+    setClipboard(makeClipboardEntry(entity, 'cut'))
+    flash('1 elemento cortado')
+  }
+
+  const handlePasteAt = async (position: Position): Promise<void> => {
+    const entry = useWorldEditorStore.getState().clipboard
+    if (!entry) return
+    // Cortar: si el original sigue existiendo, se mueve (mismo ID) y se limpia el
+    // portapapeles. Si ya no existe, se degrada a pegar como copia nueva.
+    if (entry.mode === 'cut') {
+      const stillExists = useWorldEditorStore.getState().entities.some((e) => e.worldId === entry.sourceWorldId)
+      if (stillExists) {
+        const moved = await WorldEditorService.moveEntity({ worldId: entry.sourceWorldId, position })
+        updateEntity(entry.sourceWorldId, moved)
+        selectEntity(entry.sourceWorldId)
+        setClipboard(null)
+        flash('1 elemento pegado')
+        return
+      }
+    }
+    const created = await WorldEditorService.createEntity(buildPasteRequest(entry, position))
+    addEntity({ ...created, isSelected: false, isEditing: false })
+    selectEntity(created.worldId)
+    flash('1 elemento pegado')
+  }
+
+  const handleOpenProperties = (worldId: string): void => {
+    selectEntity(worldId)
+    const entity = useWorldEditorStore.getState().entities.find((e) => e.worldId === worldId)
+    if (entity) mapRef.current?.panTo([entity.position.lat, entity.position.lng])
   }
 
   const startZone = (firstPoint?: Position): void => {
@@ -402,6 +462,45 @@ export function WorldMapPanel(): JSX.Element {
       setExporting(false)
     }
   }
+
+  // Atajos de teclado estilo escritorio (doc 28). Operan sobre la entidad
+  // seleccionada; pegar coloca en el centro visible del mapa. Se ignoran si el
+  // foco está en un campo de texto para no pisar la escritura.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent): void => {
+      const target = event.target as HTMLElement | null
+      const tag = target?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) return
+
+      const selectedId = useWorldEditorStore.getState().selectedEntityId
+      const mod = event.ctrlKey || event.metaKey
+
+      if (mod && event.key.toLowerCase() === 'c' && selectedId) {
+        event.preventDefault()
+        handleCopy(selectedId)
+      } else if (mod && event.key.toLowerCase() === 'x' && selectedId) {
+        event.preventDefault()
+        handleCut(selectedId)
+      } else if (mod && event.key.toLowerCase() === 'v') {
+        event.preventDefault()
+        const center = mapRef.current?.getCenter()
+        if (center) void handlePasteAt({ lat: center.lat, lng: center.lng })
+      } else if (mod && event.key.toLowerCase() === 'd' && selectedId) {
+        event.preventDefault()
+        void handleDuplicate(selectedId)
+      } else if (event.key === 'Delete' && selectedId) {
+        event.preventDefault()
+        void handleDelete(selectedId)
+      } else if (event.altKey && event.key === 'Enter' && selectedId) {
+        event.preventDefault()
+        handleOpenProperties(selectedId)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // Los handlers leen estado fresco vía getState, así que no dependen de closures.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="flex h-full w-full">
@@ -667,6 +766,7 @@ export function WorldMapPanel(): JSX.Element {
           {contextMenu && (
             <MapContextMenu
               context={contextMenu}
+              clipboard={clipboard}
               onClose={() => setContextMenu(null)}
               onCreatePin={(position) => void createEntityAt(WorldEntityType.Marker, position)}
               onCreateEntity={(type, position) => void createEntityAt(type, position)}
@@ -674,9 +774,20 @@ export function WorldMapPanel(): JSX.Element {
               onImportOsm={(zone) => setOsmZone(zone)}
               onDeleteZone={(zone) => void deleteZone(zone)}
               onSelectEntity={(worldId) => selectEntity(worldId)}
+              onOpenProperties={(worldId) => handleOpenProperties(worldId)}
+              onCopyEntity={(worldId) => handleCopy(worldId)}
+              onCutEntity={(worldId) => handleCut(worldId)}
+              onPasteAt={(position) => void handlePasteAt(position)}
               onDuplicateEntity={(worldId) => void handleDuplicate(worldId)}
+              onToggleEntity={(worldId) => void handleToggle(worldId)}
               onDeleteEntity={(worldId) => void handleDelete(worldId)}
             />
+          )}
+
+          {notice && (
+            <div className="pointer-events-none absolute bottom-4 left-1/2 z-[1300] -translate-x-1/2 rounded-md bg-slate-900/90 px-3 py-1.5 text-xs font-medium text-slate-100 shadow-lg ring-1 ring-surface-border">
+              {notice}
+            </div>
           )}
 
           {osmZone && (
