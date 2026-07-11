@@ -58,9 +58,14 @@
    ficha `ShopModal` con pestañas Resumen/Catálogo/Probar, abrir desde menú/inspector/doble clic, simulador de compra
 ✅ **Pin NPC funcional** (doc 20): config en `properties.npc` (identidad, acción, radio, diálogo, misión),
    ficha `NpcModal` con pestañas Identidad/Diálogo/Misión/Probar, indicadores `!`/`?`/🛒 sobre el marcador
-🟡 Verificación visual en Windows pendiente para Tienda/NPC (código + tests + build OK en CI)
+✅ **Diálogos como nodos conectados** (doc 20): grafo de nodos con opciones y efectos
+   (iniciar/avanzar/completar misión, abrir tienda, entregar objeto, cerrar), migración desde
+   líneas simples, validación de enlaces rotos, editor de grafo y previsualización que recorre el diálogo
+✅ **Misiones con pasos conectados al mapa** (docs 08, 20): pasos ordenados que apuntan a un pin
+   (`targetWorldId`) con selector y validación de que el pin objetivo exista
+🟡 Verificación visual en Windows pendiente para Tienda/NPC/Diálogos (código + tests + build OK en CI)
 ⚪ Inspector unificado con pestañas (doc 27) — hoy inspector básico + modales por tipo
-⚪ Diálogos como nodos conectados y misiones/cadenas dedicadas (hoy: versión simple embebida en el NPC)
+⚪ Cadenas de misiones entre varios NPC y persistencia del progreso (requiere módulo dedicado / servidor)
 ⚪ Cola `world_sync_jobs` + estados de sync avanzados (solo se maneja `local` de 10)
 ⚪ Sincronización remota (publish/retry/resolveConflict son stubs — requiere servidor)
 

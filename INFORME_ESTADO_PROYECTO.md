@@ -22,18 +22,19 @@ Actualizado: 2026-07-11 (integración de parche + menú contextual + pines Tiend
 | Editor de Mundo: mapa, entidades, zonas, OSM, export | `modules/worldEditor` | ✅ |
 | **Menú contextual estilo PC** (copiar/cortar/pegar/duplicar/Propiedades, atajos, no se corta) | `worldEditor/components/MapContextMenu`, `utils/clipboard` | ✅ |
 | **Pin Tienda funcional** (ficha + catálogo + simulador de compra) | `worldEditor/components/ShopModal`, `content/shopConfig` | ✅ |
-| **Pin NPC funcional** (diálogo simple + misión + simulador + indicadores) | `worldEditor/components/NpcModal`, `content/npcConfig` | ✅ |
+| **Pin NPC funcional** (simulador + indicadores `!`/`?`/🛒) | `worldEditor/components/NpcModal`, `content/npcConfig` | ✅ |
+| **Diálogos como nodos conectados** (opciones + efectos, validación de enlaces rotos, recorrido) | `content/dialogueGraph` | ✅ |
+| **Misiones con pasos conectados al mapa** (paso → pin objetivo, validación de referencias) | `content/npcConfig` | ✅ |
 
-Verificado en este entorno: `typecheck` limpio, **61/61 pruebas**, `electron-vite build` OK.
+Verificado en este entorno: `typecheck` limpio, **74/74 pruebas**, `electron-vite build` OK.
 **Pendiente:** empaquetado `.exe` (`electron-builder --win`, requiere Windows) y
 **verificación visual en el Windows del usuario** de Tienda/NPC.
 
 ### 📄 Solo DOCUMENTACIÓN (spec aprobada, sin código todavía)
 
-- Diálogos como **nodos conectados** con opciones/efectos (doc 20) — hoy el NPC
-  solo tiene una lista de líneas simple. *(En progreso en la sesión actual.)*
-- **Misiones y cadenas** dedicadas conectadas al mapa (docs 08, 20) — hoy el NPC
-  tiene una misión simple embebida. *(En progreso en la sesión actual.)*
+- **Cadenas de misiones** entre varios NPC y persistencia del progreso del jugador
+  (docs 08, 20) — hoy la misión con pasos vive embebida en el pin NPC y el diálogo
+  ya es un grafo conectado, pero no hay módulo de misiones dedicado ni progreso.
 - Monstruos / combate / loot desde el mapa (docs 14, 21, 22).
 - Recursos, recolección y respawn (doc 23).
 - Rutas de enemigos y spawn por zona (doc 14).

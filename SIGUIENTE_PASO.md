@@ -30,7 +30,9 @@ No marcar una característica como terminada hasta que exista código, pruebas y
 - Editor de Mundo con Leaflet, entidades, zonas, importación OpenStreetMap y exportación de mundo.
 - **Menú contextual estilo PC** del Editor de Mundo (copiar/cortar/pegar/duplicar/Propiedades + atajos).
 - **Pin Tienda funcional** (ficha con catálogo local + simulador de compra).
-- **Pin NPC funcional** (diálogo + misión + simulador de interacción + indicadores `!`/`?`/🛒).
+- **Pin NPC funcional** con **diálogos como nodos conectados** (opciones + efectos),
+  **misiones con pasos que apuntan a pines del mapa**, validación de referencias
+  rotas, indicadores `!`/`?`/🛒 y previsualización que recorre el diálogo.
 
 ## Trabajo completado en esta sesión
 
@@ -60,11 +62,19 @@ No marcar una característica como terminada hasta que exista código, pruebas y
 3. **Pin NPC funcional** ✅ (doc 20): config en `properties.npc` (identidad,
    acción, radio, diálogo, misión), `NpcModal` con pestañas Identidad/Diálogo/
    Misión/Probar, indicadores visuales sobre el marcador. Con tests.
+4. **Diálogos como nodos conectados** ✅ (doc 20): grafo de nodos con opciones y
+   efectos (iniciar/avanzar/completar misión, abrir tienda, entregar objeto,
+   cerrar), migración desde líneas simples, validación de enlaces rotos, editor
+   de grafo y previsualización que recorre el diálogo. En `content/dialogueGraph.ts`.
+5. **Misiones con pasos conectados al mapa** ✅ (docs 08, 20): la misión del NPC
+   tiene pasos ordenados; cada paso puede apuntar a un pin del mapa (`targetWorldId`)
+   con selector, y se valida que el pin objetivo exista. En `content/npcConfig.ts`.
 
 > Nota de honestidad: todo lo anterior está implementado en código, persiste y
-> pasa typecheck/tests/build en este entorno. **Falta la verificación visual en
-> el Windows del usuario** (arrastre real, apertura de modales, persistencia
-> tras cerrar/abrir proyecto). No considerar 100% cerrado hasta esa prueba.
+> pasa typecheck/tests/build en este entorno (74/74 pruebas). **Falta la
+> verificación visual en el Windows del usuario** (arrastre real, apertura de
+> modales, recorrido del diálogo, persistencia tras cerrar/abrir proyecto). No
+> considerar 100% cerrado hasta esa prueba.
 
 ## Lo que falta realmente en código
 
@@ -77,9 +87,11 @@ No marcar una característica como terminada hasta que exista código, pruebas y
 
 ### Prioridad 2 — módulos necesarios para el mapa (siguiente foco)
 
-1. Diálogos como nodos conectados (hoy: lista de líneas simple en el NPC).
-2. Misiones y cadenas de misiones (hoy: misión simple embebida en el NPC).
-3. Monstruos: combate simple + loot desde el mapa (doc 21).
+1. ✅ Diálogos como nodos conectados (hecho: grafo con opciones/efectos).
+2. ✅ Misiones con pasos conectados al mapa (hecho: pasos con pin objetivo).
+   Pendiente de profundizar: cadenas de misiones entre varios NPC y persistencia
+   del progreso (requiere módulo de misiones dedicado / servidor).
+3. Monstruos: combate simple + loot desde el mapa (doc 21) — **siguiente**.
 4. Loot, recompensas y cofres (doc 22).
 5. Recursos, recolección y respawn (doc 23).
 6. Rutas de enemigos y spawn por zona (doc 14).
@@ -105,10 +117,12 @@ Una función solo se marca como hecha cuando:
 
 ## Próxima tarea recomendada
 
-**Continuar la Prioridad 2 por el pin Cofre/Loot (doc 22) o Monstruo (doc 21),**
+**Continuar la Prioridad 2 por el pin Monstruo (doc 21) y luego Cofre/Loot (doc 22),**
 reutilizando el mismo patrón ya probado con Tienda y NPC: modelo saneado en
-`properties`, modal con pestañas, simulador local y tests. Antes de darlo por
-cerrado, pedir al usuario la verificación visual en Windows de tienda y NPC.
+`properties`, modal con pestañas, simulador local y tests. Regla del proyecto:
+no avanzar al siguiente pin hasta que el anterior tenga typecheck limpio, tests
+verdes y build correcto. Antes de darlo por cerrado, pedir al usuario la
+verificación visual en Windows.
 
 ## Comandos de comprobación en el PC
 
