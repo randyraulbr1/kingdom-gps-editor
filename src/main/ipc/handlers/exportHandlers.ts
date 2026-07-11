@@ -1,0 +1,30 @@
+import { ipcMain } from 'electron'
+import { projectManager } from '../../projects/ProjectManager'
+import { IconLibraryRepository } from '../../icons/iconLibraryRepository'
+import { ItemsRepository } from '../../items/itemsRepository'
+import { WorldEntityRepository } from '../../worldEditor/worldEntityRepository'
+import { WorldZoneRepository } from '../../worldEditor/worldZoneRepository'
+import { exportIconManifest, exportItems, exportWorld } from '../../export/exportService'
+
+export function registerExportHandlers(): void {
+  ipcMain.handle('export:icons', () => {
+    const db = projectManager.getDb()
+    const info = projectManager.getCurrentInfo()
+    if (!info) throw new Error('No hay un proyecto abierto')
+    return exportIconManifest(new IconLibraryRepository(db), info.path)
+  })
+
+  ipcMain.handle('export:items', () => {
+    const db = projectManager.getDb()
+    const info = projectManager.getCurrentInfo()
+    if (!info) throw new Error('No hay un proyecto abierto')
+    return exportItems(new ItemsRepository(db), info.path)
+  })
+
+  ipcMain.handle('export:world', () => {
+    const db = projectManager.getDb()
+    const info = projectManager.getCurrentInfo()
+    if (!info) throw new Error('No hay un proyecto abierto')
+    return exportWorld(new WorldEntityRepository(db), new WorldZoneRepository(db), info.name, info.path)
+  })
+}

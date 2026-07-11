@@ -1,0 +1,697 @@
+import { useEffect, useRef, useState } from 'react'
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  Polygon,
+  Polyline,
+  CircleMarker,
+  useMap,
+  useMapEvents
+} from 'react-leaflet'
+import type { DragEndEvent, LeafletMouseEvent, Marker as LeafletMarker, DivIcon, Map as LeafletMap } from 'leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import { useWorldEditorStore, useVisibleEntities } from '../hooks/useWorldEditorStore'
+import { WorldEditorService } from '../services/entityService'
+import { ZoneService } from '../services/zoneService'
+import { WorldEntityType, type Position, type WorldZone } from '@shared-types/world'
+import { getEntityIcon, getEntityColors } from '../utils/markerColors'
+import { isPointInPolygon } from '../utils/geo'
+import { LayersPanel } from './LayersPanel'
+import { ZonesPanel } from './ZonesPanel'
+import { EntityInspector } from './EntityInspector'
+import { MapContextMenu, type MapMenuContext } from './MapContextMenu'
+import { OsmImportModal } from './OsmImportModal'
+import { Layers, Map as MapIcon, Hexagon, Download, List } from 'lucide-react'
+
+/** Color del punto de estado de sincronización que se muestra sobre cada marcador. */
+const SYNC_DOT_COLORS: Record<string, string> = {
+  local: '#94a3b8',
+  pending: '#f59e0b',
+  syncing: '#3b82f6',
+  synced: '#22c55e',
+  failed: '#ef4444',
+  conflict: '#f97316',
+  offline: '#64748b',
+  deleted_pending: '#64748b',
+  deleting: '#64748b',
+  deleted: '#64748b'
+}
+
+interface MapStyle {
+  id: string
+  label: string
+  url: string
+  attribution: string
+  subdomains?: string
+}
+
+/**
+ * Capas base disponibles. Las "sin etiquetas" no muestran nombres de calles ni
+ * lugares (útil para ver el mundo limpio); las otras dos añaden calles/satélite.
+ * Ningún proveedor requiere API key; sus dominios están permitidos en la CSP de
+ * index.html (img-src/connect-src).
+ */
+const MAP_STYLES: MapStyle[] = [
+  {
+    id: 'dark-nolabels',
+    label: 'Oscuro sin etiquetas',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    subdomains: 'abcd'
+  },
+  {
+    id: 'light-nolabels',
+    label: 'Claro sin etiquetas',
+    url: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    subdomains: 'abcd'
+  },
+  {
+    id: 'streets',
+    label: 'Calles (OSM)',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; OpenStreetMap contributors'
+  },
+  {
+    id: 'satellite',
+    label: 'Satélite',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri'
+  }
+]
+
+/** Paleta cíclica para colorear zonas nuevas. */
+const ZONE_COLORS = ['#1E90FF', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#06b6d4']
+
+/** Preferencias de vista del mapa que se recuerdan entre sesiones. */
+interface MapViewPrefs {
+  styleId: string
+  center: [number, number]
+  zoom: number
+}
+
+const VIEW_STORAGE_KEY = 'kgps.worldEditor.mapView'
+const DEFAULT_VIEW: MapViewPrefs = { styleId: 'dark-nolabels', center: [0, 0], zoom: 2 }
+
+function loadView(): MapViewPrefs {
+  try {
+    const raw = localStorage.getItem(VIEW_STORAGE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<MapViewPrefs>
+      return {
+        styleId: parsed.styleId ?? DEFAULT_VIEW.styleId,
+        center: parsed.center ?? DEFAULT_VIEW.center,
+        zoom: parsed.zoom ?? DEFAULT_VIEW.zoom
+      }
+    }
+  } catch {
+    // localStorage no disponible o JSON corrupto: usar valores por defecto.
+  }
+  return DEFAULT_VIEW
+}
+
+function saveView(prefs: MapViewPrefs): void {
+  try {
+    localStorage.setItem(VIEW_STORAGE_KEY, JSON.stringify(prefs))
+  } catch {
+    // Ignorar fallos de escritura (p. ej. almacenamiento no disponible).
+  }
+}
+
+/** Etiqueta legible por tipo, para nombrar entidades nuevas. */
+const TYPE_NAME: Partial<Record<WorldEntityType, string>> = {
+  [WorldEntityType.Npc]: 'NPC',
+  [WorldEntityType.Enemy]: 'Enemigo',
+  [WorldEntityType.Object]: 'Objeto',
+  [WorldEntityType.Chest]: 'Cofre',
+  [WorldEntityType.Shop]: 'Tienda',
+  [WorldEntityType.Resource]: 'Recurso',
+  [WorldEntityType.Quest]: 'Misión',
+  [WorldEntityType.Event]: 'Evento',
+  [WorldEntityType.Marker]: 'Pin'
+}
+
+/** Divs, not L.Icon.Default - sidesteps the classic "marker icon 404" bundler issue entirely. */
+function makeDivIcon(entityType: WorldEntityType, isSelected: boolean, syncStatus: string): DivIcon {
+  const colors = getEntityColors(entityType)
+  const emoji = getEntityIcon(entityType)
+  const dot = SYNC_DOT_COLORS[syncStatus] ?? '#94a3b8'
+  return L.divIcon({
+    html: `<div style="position:relative;width:30px;height:30px;border-radius:50%;background:${colors.bg};border:2px solid ${
+      isSelected ? '#ffffff' : colors.color
+    };display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 1px 4px rgba(0,0,0,0.5);">${emoji}<span title="${syncStatus}" style="position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;background:${dot};border:1.5px solid #1e1f22;"></span></div>`,
+    className: '',
+    iconSize: [30, 30],
+    iconAnchor: [15, 15]
+  })
+}
+
+/**
+ * Corrige el bug clásico de Leaflet dentro de paneles acoplables (dockview): el
+ * mapa se monta antes de conocer su tamaño real y solo pinta un trozo de las
+ * teselas (el resto queda gris) hasta que el usuario interactúa. Forzamos
+ * `invalidateSize()` tras el montaje y en cada redimensionado del contenedor.
+ */
+function MapAutoResize(): null {
+  const map = useMap()
+  useEffect(() => {
+    const invalidate = (): void => {
+      map.invalidateSize()
+    }
+    const timers = [setTimeout(invalidate, 0), setTimeout(invalidate, 200), setTimeout(invalidate, 600)]
+    const container = map.getContainer()
+    const observer = new ResizeObserver(invalidate)
+    observer.observe(container)
+    window.addEventListener('resize', invalidate)
+    return () => {
+      timers.forEach(clearTimeout)
+      observer.disconnect()
+      window.removeEventListener('resize', invalidate)
+    }
+  }, [map])
+  return null
+}
+
+/** Guarda una referencia al objeto Leaflet Map para usarlo fuera del árbol de react-leaflet. */
+function MapRefSetter({ mapRef }: { mapRef: React.MutableRefObject<LeafletMap | null> }): null {
+  const map = useMap()
+  useEffect(() => {
+    mapRef.current = map
+    return () => {
+      mapRef.current = null
+    }
+  }, [map, mapRef])
+  return null
+}
+
+/** Notifica el centro/zoom actuales cada vez que el usuario mueve o hace zoom, para recordarlos. */
+function MapViewTracker({ onChange }: { onChange(center: [number, number], zoom: number): void }): null {
+  const map = useMapEvents({
+    moveend() {
+      const c = map.getCenter()
+      onChange([c.lat, c.lng], map.getZoom())
+    },
+    zoomend() {
+      const c = map.getCenter()
+      onChange([c.lat, c.lng], map.getZoom())
+    }
+  })
+  return null
+}
+
+/** Captura clic izquierdo y clic derecho del mapa y los reenvía al panel. */
+function MapInteractions({
+  onLeftClick,
+  onRightClick
+}: {
+  onLeftClick(position: Position): void
+  onRightClick(position: Position, screen: { x: number; y: number }): void
+}): null {
+  useMapEvents({
+    click(event: LeafletMouseEvent) {
+      onLeftClick({ lat: event.latlng.lat, lng: event.latlng.lng })
+    },
+    contextmenu(event: LeafletMouseEvent) {
+      event.originalEvent.preventDefault()
+      onRightClick(
+        { lat: event.latlng.lat, lng: event.latlng.lng },
+        { x: event.containerPoint.x, y: event.containerPoint.y }
+      )
+    }
+  })
+  return null
+}
+
+export function WorldMapPanel(): JSX.Element {
+  const entities = useVisibleEntities()
+  const selectedEntityId = useWorldEditorStore((s) => s.selectedEntityId)
+  const selectEntity = useWorldEditorStore((s) => s.selectEntity)
+  const loadEntities = useWorldEditorStore((s) => s.loadEntities)
+  const addEntity = useWorldEditorStore((s) => s.addEntity)
+  const updateEntity = useWorldEditorStore((s) => s.updateEntity)
+  const removeEntity = useWorldEditorStore((s) => s.removeEntity)
+  const setLoading = useWorldEditorStore((s) => s.setLoading)
+
+  const [placing, setPlacing] = useState<WorldEntityType | ''>('')
+  const [layersOpen, setLayersOpen] = useState(false)
+  const [zonesPanelOpen, setZonesPanelOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
+
+  // Vista del mapa recordada entre sesiones (estilo + centro + zoom).
+  const [savedView] = useState<MapViewPrefs>(loadView)
+  const [styleId, setStyleId] = useState<string>(savedView.styleId)
+  const mapStyle = MAP_STYLES.find((style) => style.id === styleId) ?? MAP_STYLES[0]
+  const styleRef = useRef(styleId)
+  const viewRef = useRef<{ center: [number, number]; zoom: number }>({
+    center: savedView.center,
+    zoom: savedView.zoom
+  })
+  const persistView = (): void => {
+    saveView({ styleId: styleRef.current, center: viewRef.current.center, zoom: viewRef.current.zoom })
+  }
+  const handleStyleChange = (id: string): void => {
+    setStyleId(id)
+    styleRef.current = id
+    persistView()
+  }
+
+  // Zonas y dibujo de polígonos
+  const [zones, setZones] = useState<WorldZone[]>([])
+  const [drawingPoints, setDrawingPoints] = useState<Position[] | null>(null)
+
+  // Refs espejo para que los handlers del mapa (registrados en Leaflet) siempre
+  // lean el estado actual y no una copia congelada (evita clics que "no hacen nada").
+  const drawingRef = useRef(false)
+  const placingRef = useRef<WorldEntityType | ''>('')
+  useEffect(() => {
+    drawingRef.current = drawingPoints !== null
+  }, [drawingPoints])
+  useEffect(() => {
+    placingRef.current = placing
+  }, [placing])
+
+  // Menú contextual y modal OSM
+  const [contextMenu, setContextMenu] = useState<MapMenuContext | null>(null)
+  const [osmZone, setOsmZone] = useState<WorldZone | null>(null)
+  const mapRef = useRef<LeafletMap | null>(null)
+
+  // Cerrar el menú contextual con Escape (comportamiento de editor de escritorio).
+  useEffect(() => {
+    if (!contextMenu) return
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') setContextMenu(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [contextMenu])
+
+  const reloadEntities = (): Promise<void> =>
+    WorldEditorService.queryEntities({ limit: 2000 }).then((result) => loadEntities(result.items))
+
+  useEffect(() => {
+    setLoading(true)
+    Promise.all([
+      WorldEditorService.queryEntities({ limit: 2000 }).then((result) => loadEntities(result.items)),
+      ZoneService.list().then((list) => setZones(list))
+    ]).finally(() => setLoading(false))
+  }, [loadEntities, setLoading])
+
+  const createEntityAt = async (type: WorldEntityType, position: Position): Promise<void> => {
+    const entity = await WorldEditorService.createEntity({
+      entityType: type,
+      entityId: null,
+      name: `${TYPE_NAME[type] ?? type} nuevo`,
+      position,
+      properties: {}
+    })
+    addEntity({ ...entity, isSelected: false, isEditing: false })
+    selectEntity(entity.worldId)
+  }
+
+  const handleLeftClick = (position: Position): void => {
+    if (drawingRef.current) {
+      setDrawingPoints((prev) => (prev ? [...prev, position] : [position]))
+      return
+    }
+    if (placingRef.current) {
+      void createEntityAt(placingRef.current, position)
+      setPlacing('')
+    }
+  }
+
+  const handleRightClick = (position: Position, screen: { x: number; y: number }): void => {
+    const zone = zones.find((z) => isPointInPolygon(position, z.points)) ?? null
+    setContextMenu({ kind: 'map', position, screen, zone })
+  }
+
+  // Con el menú abierto, un overlay cubre el mapa: clic izquierdo cierra, clic
+  // derecho reposiciona el menú en el nuevo punto (como en editores de PC).
+  const handleOverlayContextMenu = (event: React.MouseEvent<HTMLDivElement>): void => {
+    event.preventDefault()
+    const map = mapRef.current
+    const rect = event.currentTarget.getBoundingClientRect()
+    const x = event.clientX - rect.left
+    const y = event.clientY - rect.top
+    if (!map) {
+      setContextMenu(null)
+      return
+    }
+    const latlng = map.containerPointToLatLng(L.point(x, y))
+    handleRightClick({ lat: latlng.lat, lng: latlng.lng }, { x, y })
+  }
+
+  const handleDragEnd = async (worldId: string, position: Position): Promise<void> => {
+    const updated = await WorldEditorService.moveEntity({ worldId, position })
+    updateEntity(worldId, updated)
+  }
+
+  const handleDelete = async (worldId: string): Promise<void> => {
+    await WorldEditorService.deleteEntity({ worldId })
+    removeEntity(worldId)
+  }
+
+  const handleDuplicate = async (worldId: string): Promise<void> => {
+    const copy = await WorldEditorService.duplicateEntity(worldId)
+    addEntity({ ...copy, isSelected: false, isEditing: false })
+  }
+
+  const startZone = (firstPoint?: Position): void => {
+    setPlacing('')
+    setDrawingPoints(firstPoint ? [firstPoint] : [])
+  }
+
+  const finishZone = async (): Promise<void> => {
+    if (!drawingPoints || drawingPoints.length < 3) return
+    try {
+      const zone = await ZoneService.create({
+        name: `Zona ${zones.length + 1}`,
+        color: ZONE_COLORS[zones.length % ZONE_COLORS.length],
+        points: drawingPoints
+      })
+      setZones((prev) => [...prev, zone])
+      setDrawingPoints(null)
+    } catch (error) {
+      // No fallar en silencio: si la creación en SQLite falla, avisar.
+      window.alert(`No se pudo crear la zona: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
+  const deleteZone = async (zone: WorldZone): Promise<void> => {
+    await ZoneService.delete(zone.zoneId)
+    setZones((prev) => prev.filter((z) => z.zoneId !== zone.zoneId))
+  }
+
+  const updateZone = async (zoneId: string, patch: Partial<Pick<WorldZone, 'name' | 'color'>>): Promise<void> => {
+    const updated = await ZoneService.update({ zoneId, patch })
+    setZones((prev) => prev.map((z) => (z.zoneId === zoneId ? updated : z)))
+  }
+
+  const handleExport = async (): Promise<void> => {
+    setExporting(true)
+    try {
+      const result = await window.api.export.world()
+      window.alert(
+        `Mundo exportado a:\n${result.outputPath}\n\n${result.recordCount} elementos (entidades + zonas).`
+      )
+    } catch (error) {
+      window.alert(`No se pudo exportar el mundo: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  return (
+    <div className="flex h-full w-full">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-center gap-2 border-b border-surface-border bg-surface-1 px-3 py-2">
+          <span className="text-xs text-slate-500">
+            {entities.length} entidades · {zones.length} zonas
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <div className="flex items-center gap-1" title="Estilo del mapa">
+              <MapIcon size={12} className="text-slate-500" />
+              <select
+                value={styleId}
+                onChange={(event) => handleStyleChange(event.target.value)}
+                className="rounded-md border border-surface-border bg-surface-2 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-accent"
+              >
+                {MAP_STYLES.map((style) => (
+                  <option key={style.id} value={style.id}>
+                    {style.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="button"
+              onClick={() => (drawingPoints !== null ? setDrawingPoints(null) : startZone())}
+              className={`flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs ${
+                drawingPoints !== null
+                  ? 'border-accent bg-accent-muted text-accent'
+                  : 'border-surface-border text-slate-300 hover:bg-surface-2'
+              }`}
+            >
+              <Hexagon size={12} /> Zona
+            </button>
+            <select
+              value={placing}
+              onChange={(event) => setPlacing(event.target.value as WorldEntityType | '')}
+              className="rounded-md border border-surface-border bg-surface-2 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-accent"
+            >
+              <option value="">Colocar entidad...</option>
+              {Object.values(WorldEntityType).map((type) => (
+                <option key={type} value={type}>
+                  {getEntityIcon(type)} {type}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setZonesPanelOpen((open) => !open)}
+              className={`flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs ${
+                zonesPanelOpen
+                  ? 'border-accent bg-accent-muted text-accent'
+                  : 'border-surface-border text-slate-300 hover:bg-surface-2'
+              }`}
+            >
+              <List size={12} /> Zonas
+            </button>
+            <button
+              type="button"
+              onClick={() => setLayersOpen((open) => !open)}
+              className={`flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs ${
+                layersOpen ? 'border-accent bg-accent-muted text-accent' : 'border-surface-border text-slate-300 hover:bg-surface-2'
+              }`}
+            >
+              <Layers size={12} /> Capas
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleExport()}
+              disabled={exporting}
+              title="Exportar el mundo (entidades + zonas) a export/world.json"
+              className="flex items-center gap-1 rounded-md border border-surface-border px-2 py-1.5 text-xs text-slate-300 hover:bg-surface-2 disabled:opacity-40"
+            >
+              <Download size={12} /> {exporting ? 'Exportando…' : 'Exportar'}
+            </button>
+          </div>
+        </div>
+
+        <div className="relative min-h-0 flex-1">
+          <MapContainer
+            center={savedView.center}
+            zoom={savedView.zoom}
+            className="h-full w-full"
+            style={{ background: '#1e1f22' }}
+          >
+            <TileLayer
+              key={mapStyle.id}
+              url={mapStyle.url}
+              attribution={mapStyle.attribution}
+              subdomains={mapStyle.subdomains ?? 'abc'}
+            />
+            <MapRefSetter mapRef={mapRef} />
+            <MapAutoResize />
+            <MapViewTracker
+              onChange={(center, zoom) => {
+                viewRef.current = { center, zoom }
+                persistView()
+              }}
+            />
+            <MapInteractions onLeftClick={handleLeftClick} onRightClick={handleRightClick} />
+
+            {/* Zonas guardadas */}
+            {zones.map((zone) => (
+              <Polygon
+                key={zone.zoneId}
+                positions={zone.points.map((p) => [p.lat, p.lng])}
+                pathOptions={{ color: zone.color, fillColor: zone.color, fillOpacity: 0.12, weight: 2 }}
+                eventHandlers={{
+                  contextmenu: (event: LeafletMouseEvent) => {
+                    event.originalEvent.preventDefault()
+                    L.DomEvent.stopPropagation(event)
+                    handleRightClick(
+                      { lat: event.latlng.lat, lng: event.latlng.lng },
+                      { x: event.containerPoint.x, y: event.containerPoint.y }
+                    )
+                  }
+                }}
+              >
+                <Popup>{zone.name}</Popup>
+              </Polygon>
+            ))}
+
+            {/* Zona en construcción */}
+            {drawingPoints && drawingPoints.length > 0 && (
+              <>
+                {drawingPoints.length >= 3 && (
+                  <Polygon
+                    positions={drawingPoints.map((p) => [p.lat, p.lng])}
+                    pathOptions={{ color: '#38bdf8', fillColor: '#38bdf8', fillOpacity: 0.1, weight: 1, dashArray: '4' }}
+                  />
+                )}
+                <Polyline
+                  positions={drawingPoints.map((p) => [p.lat, p.lng])}
+                  pathOptions={{ color: '#38bdf8', dashArray: '4' }}
+                />
+                {drawingPoints.map((p, index) => {
+                  const isFirst = index === 0
+                  const canClose = isFirst && drawingPoints.length >= 3
+                  return (
+                    <CircleMarker
+                      key={index}
+                      center={[p.lat, p.lng]}
+                      radius={canClose ? 8 : isFirst ? 6 : 4}
+                      pathOptions={{
+                        color: canClose ? '#22c55e' : '#38bdf8',
+                        fillColor: canClose ? '#22c55e' : isFirst ? '#38bdf8' : '#0ea5e9',
+                        fillOpacity: 1,
+                        weight: canClose ? 3 : 1
+                      }}
+                      eventHandlers={
+                        canClose
+                          ? {
+                              click: (event: LeafletMouseEvent) => {
+                                L.DomEvent.stop(event.originalEvent)
+                                void finishZone()
+                              }
+                            }
+                          : undefined
+                      }
+                    />
+                  )
+                })}
+              </>
+            )}
+
+            {/* Entidades */}
+            {entities.map((entity) => (
+              <Marker
+                key={entity.worldId}
+                position={[entity.position.lat, entity.position.lng]}
+                draggable
+                icon={makeDivIcon(entity.entityType, entity.worldId === selectedEntityId, entity.syncStatus)}
+                eventHandlers={{
+                  click: () => selectEntity(entity.worldId),
+                  contextmenu: (event: LeafletMouseEvent) => {
+                    event.originalEvent.preventDefault()
+                    L.DomEvent.stopPropagation(event)
+                    setContextMenu({
+                      kind: 'entity',
+                      position: { lat: entity.position.lat, lng: entity.position.lng },
+                      screen: { x: event.containerPoint.x, y: event.containerPoint.y },
+                      entity
+                    })
+                  },
+                  dragend: (event: DragEndEvent) => {
+                    const marker = event.target as LeafletMarker
+                    const position = marker.getLatLng()
+                    handleDragEnd(entity.worldId, { lat: position.lat, lng: position.lng })
+                  }
+                }}
+              >
+                <Popup>{entity.name}</Popup>
+              </Marker>
+            ))}
+          </MapContainer>
+
+          {layersOpen && (
+            <div className="absolute right-3 top-3 z-[1000]">
+              <LayersPanel />
+            </div>
+          )}
+
+          {zonesPanelOpen && (
+            <div className="absolute left-3 top-3 z-[1000]">
+              <ZonesPanel
+                zones={zones}
+                onRename={(zoneId, name) => void updateZone(zoneId, { name })}
+                onRecolor={(zoneId, color) => void updateZone(zoneId, { color })}
+                onDelete={(zone) => void deleteZone(zone)}
+              />
+            </div>
+          )}
+
+          {placing && (
+            <div className="pointer-events-none absolute left-1/2 top-3 z-[1000] -translate-x-1/2 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white shadow-lg">
+              Haz click en el mapa para colocar: {placing}
+            </div>
+          )}
+
+          {drawingPoints !== null && (
+            <div className="absolute left-1/2 top-3 z-[1000] flex -translate-x-1/2 items-center gap-2 rounded-md border border-surface-border bg-surface-1 px-3 py-1.5 text-xs shadow-lg">
+              <Hexagon size={12} className="text-accent" />
+              <span className="text-slate-300">
+                Zona: {drawingPoints.length} punto(s) ·{' '}
+                {drawingPoints.length < 3
+                  ? 'clic izquierdo en el mapa para añadir (mín. 3)'
+                  : 'clic izquierdo para añadir · toca el punto verde o Finalizar para cerrar'}
+              </span>
+              <button
+                type="button"
+                disabled={drawingPoints.length < 1}
+                onClick={() => setDrawingPoints(drawingPoints.slice(0, -1))}
+                className="rounded border border-surface-border px-1.5 py-0.5 text-slate-300 hover:bg-surface-2 disabled:opacity-40"
+              >
+                Deshacer punto
+              </button>
+              <button
+                type="button"
+                disabled={drawingPoints.length < 3}
+                onClick={() => void finishZone()}
+                className="rounded bg-accent px-1.5 py-0.5 font-medium text-white disabled:opacity-40"
+              >
+                Finalizar
+              </button>
+              <button
+                type="button"
+                onClick={() => setDrawingPoints(null)}
+                className="rounded border border-surface-border px-1.5 py-0.5 text-slate-300 hover:bg-surface-2"
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
+
+          {contextMenu && (
+            <div
+              className="absolute inset-0 z-[1150]"
+              onClick={() => setContextMenu(null)}
+              onContextMenu={handleOverlayContextMenu}
+            />
+          )}
+
+          {contextMenu && (
+            <MapContextMenu
+              context={contextMenu}
+              onClose={() => setContextMenu(null)}
+              onCreatePin={(position) => void createEntityAt(WorldEntityType.Marker, position)}
+              onCreateEntity={(type, position) => void createEntityAt(type, position)}
+              onStartZone={(position) => startZone(position)}
+              onImportOsm={(zone) => setOsmZone(zone)}
+              onDeleteZone={(zone) => void deleteZone(zone)}
+              onSelectEntity={(worldId) => selectEntity(worldId)}
+              onDuplicateEntity={(worldId) => void handleDuplicate(worldId)}
+              onDeleteEntity={(worldId) => void handleDelete(worldId)}
+            />
+          )}
+
+          {osmZone && (
+            <OsmImportModal
+              zone={osmZone}
+              onClose={() => setOsmZone(null)}
+              onImported={() => void reloadEntities()}
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="w-72 shrink-0 border-l border-surface-border">
+        <EntityInspector onDelete={handleDelete} />
+      </div>
+    </div>
+  )
+}

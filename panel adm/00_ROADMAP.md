@@ -1,0 +1,120 @@
+# ROADMAP - Panel ADM Kingdom GPS
+
+> Este documento será la guía maestra del proyecto. Cada nueva idea aprobada se convertirá en una fase antes de implementarse.
+>
+> **Sincronizado con el código real el 2026-07-10** (ver `INFORME_ESTADO_PROYECTO.md`).
+> Los estados reflejan lo que está implementado y funcionando, no solo lo planificado.
+
+## Estado
+- ✅ Completado
+- 🟡 En desarrollo / parcial
+- ⚪ Planificado
+
+### FASE 0 - Arquitectura
+✅ Definición de tecnologías
+✅ Estructura del proyecto
+✅ Documentación inicial
+
+### FASE 1 - Núcleo del editor ✅ COMPLETA
+✅ Electron + React + TypeScript
+✅ SQLite (libSQL + Kysely, WAL, migraciones idempotentes)
+✅ IPC (tipado punta a punta, verificado por prueba estática)
+✅ Docking (dockview-react)
+✅ Biblioteca de iconos (escaneo, tags, favoritos, dedup SHA-256, resize sharp)
+➕ Extra hecho: ProjectManager (backups+recuperación), CommandBus/undo-redo persistente, exportadores
+
+### FASE 2 - Editor de Objetos 🟡 CASI COMPLETA
+✅ Base de datos de objetos (migración 003_items, ItemsRepository)
+✅ Inventario visual (rejilla/lista/tabla virtualizada, es el patrón de referencia)
+✅ Editor de propiedades (Inspector ~20 campos, edición masiva, undo/redo, export)
+⚪ Generación de iconos IA (Recraft) — pendiente: cola `icon_generation_jobs`, token `.env`
+
+### FASE 3b - Contenido en serie (framework + Armas) 🟡 EN MARCHA
+✅ Framework de contenido genérico `shared/content/` (ContentGrid/List/Table, toolbar, store y panel genéricos)
+✅ Módulo **Armas** completo sobre el framework (migración 006_weapons, repo, IPC, inspector con daño/velocidad/alcance/crítico)
+⚪ Migrar Objetos al framework (limpieza; hoy usa sus propios componentes)
+⚪ Undo/redo y exportación JSON para Armas (Objetos ya los tiene)
+⚪ Repetir el patrón para los 20 módulos restantes (Armaduras, NPC, Monstruos, …)
+
+### FASE 3 - Editor de Mundo 🟡 LOCAL COMPLETA (falta sync con servidor)
+✅ Mapa (Leaflet + teselas reales; selector de estilo: oscuro/claro sin etiquetas, OSM, satélite)
+✅ Vista recordada entre sesiones (estilo + centro + zoom)
+✅ Capas (mostrar/ocultar por tipo)
+✅ Marcadores (L.divIcon por tipo) con punto de estado de sincronización visible
+✅ Inspector (nombre, tipo, posición, sync, habilitar, duplicar, eliminar)
+✅ Menú contextual estilo PC (crear pin/entidades, reposicionar con clic derecho, voltea si se sale)
+✅ Zonas: dibujar polígono, cerrar tocando el primer punto, y panel para renombrar/color/eliminar
+✅ Importar lugares reales de OpenStreetMap dentro de una zona (farmacias/hospitales/gasolineras/supermercados)
+✅ Exportar mundo (entidades + zonas) a `export/world.json` (botón + registro de exportadores)
+✅ Sincronización local (persistido en SQLite: `004_world_entities`, `005_world_zones`, ULID)
+⚪ Cola `world_sync_jobs` + estados de sync avanzados (solo se maneja `local` de 10)
+⚪ Sincronización remota (publish/retry/resolveConflict son stubs — requiere servidor)
+
+### FASE 4 - Gestor de Sistemas ⚪ PENDIENTE (doc 04)
+⚪ Versionado (versiones candidatas, nunca sobrescribir la activa)
+⚪ Monaco Editor (NO instalado todavía — falta dependencia)
+⚪ Diff / comparador visual
+⚪ Rollback
+⚪ Publicación con staging + adaptadores + feature flags
+
+### FASE 5 - Laboratorio ⚪ PENDIENTE
+⚪ Laboratorio de pruebas
+⚪ Simulador de carga
+⚪ Consola integrada
+
+### FASE 6 - Herramientas ⚪ PENDIENTE
+⚪ Editor visual de historias
+⚪ IA para comportamiento de NPC
+⚪ Editor de profesiones
+⚪ Programador de eventos
+⚪ Panel de economía
+⚪ Buscador global
+⚪ Analizador de dependencias
+⚪ Wiki automática
+
+### FASE 7 - Vista integrada del juego ⚪ PENDIENTE (doc 03)
+⚪ WebContentsView cargando producción/local/URL
+⚪ Controles (recarga, limpiar caché/SW, DevTools, capturas, viewport)
+⚪ Consola integrada (logs/red/Service Worker)
+
+### FASE 8 - Generador de misiones GPS ⚪ PENDIENTE (doc 08)
+⚪ Importar TXT/YAML/JSON y crear cadenas
+⚪ Pines numerados + líneas + arrastrar/reordenar en el mapa
+⚪ Validación peatonal / accesibilidad + guardado y publicación
+
+### FASE 9 - Zonas de juego por jugador ⚪ PENDIENTE (doc 12)
+⚪ Polígonos por jugador (`play_areas`, `play_area_entities`)
+⚪ Contenido validado dentro del área + cobertura pública
+⚪ Solicitud desde el juego + aprobación + sync
+
+### FASE 10 - Seguridad y auditoría de jugadores ⚪ PENDIENTE (doc 09, requiere servidor)
+⚪ Perfiles + historial + libro contable inmutable
+⚪ Detección de anomalías + puntuación de riesgo
+⚪ Expedientes exportables
+
+### FASE 11 - Ideas y feedback de jugadores ⚪ PENDIENTE (doc 10)
+⚪ Formulario + activar/desactivar desde el panel
+⚪ Bandeja de revisión + estados + conversión a roadmap
+⚪ Votación opcional
+
+### FASE 12 - Tops, clasificaciones y temporadas ⚪ PENDIENTE (doc 13, requiere servidor)
+⚪ Tops permanentes y temporales (`leaderboards`, `seasons`, `snapshots`)
+⚪ Cierre/reinicio seguro con snapshot histórico
+⚪ Recompensas idempotentes + filtros regionales
+
+### FASE FUTURA - Economía (doc 06)
+⚪ Billeteras, mercado P2P, libro contable — explícitamente para más adelante
+
+### Transversal - Guía de integración y calidad (doc 11)
+🟡 Parcial: contratos en shared-types, IPC tipado, repositories, migraciones, tests
+⚪ Falta: estructura por módulo (contracts/adapters/validators/README), feature flags,
+   idempotencyKey, logs estructurados, eventos tipados con correlationId
+
+## Regla del proyecto
+Toda nueva idea deberá:
+1. Documentarse.
+2. Evaluarse.
+3. Asignarse a una fase.
+4. Implementarse solo cuando llegue su fase.
+
+No se desarrollarán funciones fuera del roadmap salvo decisión explícita.
