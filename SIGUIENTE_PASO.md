@@ -51,6 +51,11 @@ No marcar una característica como terminada hasta que exista código, pruebas y
 - **Mejoras del mapa**: más zoom (overzoom hasta z22), escaneo OSM ampliado a 19 categorías
   (restaurantes, cafeterías, bancos, escuelas, hoteles, parques, agua…) con conteo por tipo
   y botones Todo/Ninguno para elegir qué crear.
+- **Módulo Sprite Sheet / Personaje** (grupo Herramientas): editor de hoja de sprites con
+  lienzo (zoom/pan/selección rectangular/cuadrícula), asignación de frames a 8 direcciones y
+  9 acciones, vista previa animada, exportar/importar JSON, y probador con WASD (correr,
+  agachado, deslizar, disparar, recargar), colisiones, cámara y HUD. Incluye sprite sheet de
+  ejemplo (`sprite-tester/example/`). Lógica pura con 22 tests.
 - Script `actualizar.bat` para actualizar y verificar la copia local en Windows con un doble clic.
 
 ## Trabajo completado en esta sesión

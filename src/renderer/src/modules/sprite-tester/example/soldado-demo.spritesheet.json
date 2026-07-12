@@ -1,0 +1,207 @@
+{
+  "image": "soldado-demo.png",
+  "frameSize": {
+    "width": 64,
+    "height": 64
+  },
+  "gridSize": 64,
+  "animations": {
+    "idle": {
+      "down": [
+        {
+          "x": 0,
+          "y": 0,
+          "width": 64,
+          "height": 64
+        }
+      ],
+      "down_left": [
+        {
+          "x": 0,
+          "y": 64,
+          "width": 64,
+          "height": 64
+        }
+      ],
+      "left": [
+        {
+          "x": 0,
+          "y": 128,
+          "width": 64,
+          "height": 64
+        }
+      ],
+      "up_left": [
+        {
+          "x": 0,
+          "y": 192,
+          "width": 64,
+          "height": 64
+        }
+      ],
+      "up": [
+        {
+          "x": 0,
+          "y": 256,
+          "width": 64,
+          "height": 64
+        }
+      ],
+      "up_right": [
+        {
+          "x": 0,
+          "y": 320,
+          "width": 64,
+          "height": 64
+        }
+      ],
+      "right": [
+        {
+          "x": 0,
+          "y": 384,
+          "width": 64,
+          "height": 64
+        }
+      ],
+      "down_right": [
+        {
+          "x": 0,
+          "y": 448,
+          "width": 64,
+          "height": 64
+        }
+      ]
+    },
+    "walk": {
+      "down": [
+        {
+          "x": 64,
+          "y": 0,
+          "width": 64,
+          "height": 64
+        },
+        {
+          "x": 128,
+          "y": 0,
+          "width": 64,
+          "height": 64
+        }
+      ],
+      "down_left": [
+        {
+          "x": 64,
+          "y": 64,
+          "width": 64,
+          "height": 64
+        },
+        {
+          "x": 128,
+          "y": 64,
+          "width": 64,
+          "height": 64
+        }
+      ],
+      "left": [
+        {
+          "x": 64,
+          "y": 128,
+          "width": 64,
+          "height": 64
+        },
+        {
+          "x": 128,
+          "y": 128,
+          "width": 64,
+          "height": 64
+        }
+      ],
+      "up_left": [
+        {
+          "x": 64,
+          "y": 192,
+          "width": 64,
+          "height": 64
+        },
+        {
+          "x": 128,
+          "y": 192,
+          "width": 64,
+          "height": 64
+        }
+      ],
+      "up": [
+        {
+          "x": 64,
+          "y": 256,
+          "width": 64,
+          "height": 64
+        },
+        {
+          "x": 128,
+          "y": 256,
+          "width": 64,
+          "height": 64
+        }
+      ],
+      "up_right": [
+        {
+          "x": 64,
+          "y": 320,
+          "width": 64,
+          "height": 64
+        },
+        {
+          "x": 128,
+          "y": 320,
+          "width": 64,
+          "height": 64
+        }
+      ],
+      "right": [
+        {
+          "x": 64,
+          "y": 384,
+          "width": 64,
+          "height": 64
+        },
+        {
+          "x": 128,
+          "y": 384,
+          "width": 64,
+          "height": 64
+        }
+      ],
+      "down_right": [
+        {
+          "x": 64,
+          "y": 448,
+          "width": 64,
+          "height": 64
+        },
+        {
+          "x": 128,
+          "y": 448,
+          "width": 64,
+          "height": 64
+        }
+      ]
+    }
+  },
+  "settings": {
+    "idle": {
+      "fps": 4,
+      "loop": true
+    },
+    "walk": {
+      "fps": 8,
+      "loop": true
+    }
+  },
+  "hitbox": {
+    "width": 32,
+    "height": 40
+  },
+  "walkSpeed": 120,
+  "runSpeed": 220,
+  "slideDistance": 80
+}

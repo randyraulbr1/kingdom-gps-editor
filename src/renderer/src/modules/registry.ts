@@ -26,6 +26,7 @@ import { settingsModule } from './settings/module'
 import { toolsModule } from './tools/module'
 import { iconLibraryModule } from './icon-library/module'
 import { worldEditorModule } from './worldEditor/module'
+import { spriteTesterModule } from './sprite-tester/module'
 
 /**
  * The only file (besides the mirror in src/main/modules/registry.ts) that
@@ -58,7 +59,8 @@ const MODULES: RendererModuleDefinition[] = [
   settingsModule,
   toolsModule,
   iconLibraryModule,
-  worldEditorModule
+  worldEditorModule,
+  spriteTesterModule
 ]
 
 const MODULE_MAP = new Map<ModuleId, RendererModuleDefinition>(MODULES.map((m) => [m.id, m]))

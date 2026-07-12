@@ -94,8 +94,12 @@
 ⚪ Rollback
 ⚪ Publicación con staging + adaptadores + feature flags
 
-### FASE 5 - Laboratorio ⚪ PENDIENTE
-⚪ Laboratorio de pruebas
+### FASE 5 - Laboratorio 🟡 EN MARCHA
+✅ **Módulo Sprite Sheet / Personaje** (Herramientas): importar hoja PNG, seleccionar regiones,
+   asignar frames a 8 direcciones y 9 acciones, vista previa animada, exportar/importar JSON, y
+   probador con WASD (correr/agachado/deslizar/disparar/recargar), colisiones, cámara y HUD.
+   Con sprite sheet de ejemplo y 22 pruebas de lógica pura.
+⚪ Laboratorio de pruebas (más simuladores)
 ⚪ Simulador de carga
 ⚪ Consola integrada
 
