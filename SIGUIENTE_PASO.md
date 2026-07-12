@@ -48,6 +48,9 @@ No marcar una característica como terminada hasta que exista código, pruebas y
   panel de capas con contadores y bloqueo de arrastre por tipo.
 - **Administrador de referencias y borrado seguro** (doc 19): "usado por" en el inspector,
   aviso ⚠ sobre pines con referencia rota, y borrado seguro que desvincula antes de eliminar.
+- **Mejoras del mapa**: más zoom (overzoom hasta z22), escaneo OSM ampliado a 19 categorías
+  (restaurantes, cafeterías, bancos, escuelas, hoteles, parques, agua…) con conteo por tipo
+  y botones Todo/Ninguno para elegir qué crear.
 - Script `actualizar.bat` para actualizar y verificar la copia local en Windows con un doble clic.
 
 ## Trabajo completado en esta sesión

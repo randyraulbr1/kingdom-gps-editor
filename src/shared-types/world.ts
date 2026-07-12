@@ -325,7 +325,26 @@ export interface UpdateEnemyRouteRequest {
 // ========== Integración OpenStreetMap (Overpass) ==========
 
 /** Categorías reales de OSM que el editor sabe consultar dentro de una zona. */
-export type OsmCategoryKey = 'pharmacy' | 'hospital' | 'fuel' | 'supermarket'
+export type OsmCategoryKey =
+  | 'pharmacy'
+  | 'hospital'
+  | 'fuel'
+  | 'supermarket'
+  | 'restaurant'
+  | 'cafe'
+  | 'bank'
+  | 'atm'
+  | 'school'
+  | 'police'
+  | 'place_of_worship'
+  | 'hotel'
+  | 'marketplace'
+  | 'bakery'
+  | 'clothes'
+  | 'convenience'
+  | 'hardware'
+  | 'park'
+  | 'drinking_water'
 
 /** Un lugar real devuelto por OpenStreetMap dentro de la zona consultada. */
 export interface OsmPlace {

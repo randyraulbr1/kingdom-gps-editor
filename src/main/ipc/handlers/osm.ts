@@ -32,7 +32,22 @@ const CATEGORY_FILTERS: Record<OsmCategoryKey, { filter: string; defaultName: st
   pharmacy: { filter: '["amenity"="pharmacy"]', defaultName: 'Farmacia' },
   hospital: { filter: '["amenity"="hospital"]', defaultName: 'Hospital' },
   fuel: { filter: '["amenity"="fuel"]', defaultName: 'Gasolinera' },
-  supermarket: { filter: '["shop"="supermarket"]', defaultName: 'Supermercado' }
+  supermarket: { filter: '["shop"="supermarket"]', defaultName: 'Supermercado' },
+  restaurant: { filter: '["amenity"="restaurant"]', defaultName: 'Restaurante' },
+  cafe: { filter: '["amenity"="cafe"]', defaultName: 'Cafetería' },
+  bank: { filter: '["amenity"="bank"]', defaultName: 'Banco' },
+  atm: { filter: '["amenity"="atm"]', defaultName: 'Cajero' },
+  school: { filter: '["amenity"="school"]', defaultName: 'Escuela' },
+  police: { filter: '["amenity"="police"]', defaultName: 'Policía' },
+  place_of_worship: { filter: '["amenity"="place_of_worship"]', defaultName: 'Templo' },
+  hotel: { filter: '["tourism"="hotel"]', defaultName: 'Hotel' },
+  marketplace: { filter: '["amenity"="marketplace"]', defaultName: 'Mercado' },
+  bakery: { filter: '["shop"="bakery"]', defaultName: 'Panadería' },
+  clothes: { filter: '["shop"="clothes"]', defaultName: 'Tienda de ropa' },
+  convenience: { filter: '["shop"="convenience"]', defaultName: 'Tienda' },
+  hardware: { filter: '["shop"="hardware"]', defaultName: 'Ferretería' },
+  park: { filter: '["leisure"="park"]', defaultName: 'Parque' },
+  drinking_water: { filter: '["amenity"="drinking_water"]', defaultName: 'Agua potable' }
 }
 
 const ALL_CATEGORIES = Object.keys(CATEGORY_FILTERS) as OsmCategoryKey[]
@@ -51,13 +66,49 @@ function toPolyString(polygon: Position[]): string {
   return polygon.map((p) => `${p.lat} ${p.lng}`).join(' ')
 }
 
-/** Deduce la categoría de un elemento a partir de sus tags. */
+/** Deduce la categoría de un elemento a partir de sus tags (prioridad shop > tourism > amenity > leisure). */
 function categoryOf(tags: Record<string, string> | undefined): OsmCategoryKey | null {
   if (!tags) return null
-  if (tags.amenity === 'pharmacy') return 'pharmacy'
-  if (tags.amenity === 'hospital') return 'hospital'
-  if (tags.amenity === 'fuel') return 'fuel'
-  if (tags.shop === 'supermarket') return 'supermarket'
+  switch (tags.shop) {
+    case 'supermarket':
+      return 'supermarket'
+    case 'bakery':
+      return 'bakery'
+    case 'clothes':
+      return 'clothes'
+    case 'convenience':
+      return 'convenience'
+    case 'hardware':
+      return 'hardware'
+  }
+  if (tags.tourism === 'hotel') return 'hotel'
+  switch (tags.amenity) {
+    case 'pharmacy':
+      return 'pharmacy'
+    case 'hospital':
+      return 'hospital'
+    case 'fuel':
+      return 'fuel'
+    case 'restaurant':
+      return 'restaurant'
+    case 'cafe':
+      return 'cafe'
+    case 'bank':
+      return 'bank'
+    case 'atm':
+      return 'atm'
+    case 'school':
+      return 'school'
+    case 'police':
+      return 'police'
+    case 'place_of_worship':
+      return 'place_of_worship'
+    case 'marketplace':
+      return 'marketplace'
+    case 'drinking_water':
+      return 'drinking_water'
+  }
+  if (tags.leisure === 'park') return 'park'
   return null
 }
 

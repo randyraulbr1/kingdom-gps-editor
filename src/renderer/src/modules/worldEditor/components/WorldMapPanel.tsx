@@ -62,7 +62,12 @@ interface MapStyle {
   url: string
   attribution: string
   subdomains?: string
+  /** Zoom máximo con teselas propias; más allá se sobre-escalan (overzoom). */
+  maxNativeZoom: number
 }
+
+/** Zoom máximo del mapa (permite acercar más allá de las teselas nativas). */
+const MAP_MAX_ZOOM = 22
 
 /**
  * Capas base disponibles. Las "sin etiquetas" no muestran nombres de calles ni
@@ -76,26 +81,30 @@ const MAP_STYLES: MapStyle[] = [
     label: 'Oscuro sin etiquetas',
     url: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
     attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    subdomains: 'abcd'
+    subdomains: 'abcd',
+    maxNativeZoom: 20
   },
   {
     id: 'light-nolabels',
     label: 'Claro sin etiquetas',
     url: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
     attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    subdomains: 'abcd'
+    subdomains: 'abcd',
+    maxNativeZoom: 20
   },
   {
     id: 'streets',
     label: 'Calles (OSM)',
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; OpenStreetMap contributors'
+    attribution: '&copy; OpenStreetMap contributors',
+    maxNativeZoom: 19
   },
   {
     id: 'satellite',
     label: 'Satélite',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri'
+    attribution: 'Tiles &copy; Esri',
+    maxNativeZoom: 19
   }
 ]
 
@@ -803,6 +812,7 @@ export function WorldMapPanel(): JSX.Element {
           <MapContainer
             center={savedView.center}
             zoom={savedView.zoom}
+            maxZoom={MAP_MAX_ZOOM}
             className="h-full w-full"
             style={{ background: '#1e1f22' }}
           >
@@ -811,6 +821,8 @@ export function WorldMapPanel(): JSX.Element {
               url={mapStyle.url}
               attribution={mapStyle.attribution}
               subdomains={mapStyle.subdomains ?? 'abc'}
+              maxZoom={MAP_MAX_ZOOM}
+              maxNativeZoom={mapStyle.maxNativeZoom}
             />
             <MapRefSetter mapRef={mapRef} />
             <MapAutoResize />

@@ -26,15 +26,27 @@ const CATEGORIES: CategoryMeta[] = [
   { key: 'pharmacy', label: 'Farmacias', emoji: '💊', entityType: WorldEntityType.Shop },
   { key: 'hospital', label: 'Hospitales', emoji: '🏥', entityType: WorldEntityType.Building },
   { key: 'fuel', label: 'Gasolineras', emoji: '⛽', entityType: WorldEntityType.Shop },
-  { key: 'supermarket', label: 'Supermercados', emoji: '🛒', entityType: WorldEntityType.Shop }
+  { key: 'supermarket', label: 'Supermercados', emoji: '🛒', entityType: WorldEntityType.Shop },
+  { key: 'convenience', label: 'Tiendas', emoji: '🏬', entityType: WorldEntityType.Shop },
+  { key: 'bakery', label: 'Panaderías', emoji: '🥖', entityType: WorldEntityType.Shop },
+  { key: 'clothes', label: 'Ropa', emoji: '👕', entityType: WorldEntityType.Shop },
+  { key: 'hardware', label: 'Ferreterías', emoji: '🔧', entityType: WorldEntityType.Shop },
+  { key: 'marketplace', label: 'Mercados', emoji: '🏪', entityType: WorldEntityType.Shop },
+  { key: 'restaurant', label: 'Restaurantes', emoji: '🍽️', entityType: WorldEntityType.Shop },
+  { key: 'cafe', label: 'Cafeterías', emoji: '☕', entityType: WorldEntityType.Shop },
+  { key: 'bank', label: 'Bancos', emoji: '🏦', entityType: WorldEntityType.Building },
+  { key: 'atm', label: 'Cajeros', emoji: '🏧', entityType: WorldEntityType.Marker },
+  { key: 'school', label: 'Escuelas', emoji: '🏫', entityType: WorldEntityType.Building },
+  { key: 'police', label: 'Policía', emoji: '🚓', entityType: WorldEntityType.Building },
+  { key: 'place_of_worship', label: 'Templos', emoji: '⛪', entityType: WorldEntityType.Building },
+  { key: 'hotel', label: 'Hoteles', emoji: '🏨', entityType: WorldEntityType.Building },
+  { key: 'park', label: 'Parques', emoji: '🌳', entityType: WorldEntityType.Resource },
+  { key: 'drinking_water', label: 'Agua potable', emoji: '💧', entityType: WorldEntityType.Resource }
 ]
 
-const ENTITY_TYPE_BY_CATEGORY: Record<OsmCategoryKey, WorldEntityType> = {
-  pharmacy: WorldEntityType.Shop,
-  hospital: WorldEntityType.Building,
-  fuel: WorldEntityType.Shop,
-  supermarket: WorldEntityType.Shop
-}
+const ENTITY_TYPE_BY_CATEGORY: Record<OsmCategoryKey, WorldEntityType> = Object.fromEntries(
+  CATEGORIES.map((c) => [c.key, c.entityType])
+) as Record<OsmCategoryKey, WorldEntityType>
 
 export function OsmImportModal({ zone, onClose, onImported }: Props): JSX.Element {
   const [loading, setLoading] = useState(true)
@@ -152,10 +164,26 @@ export function OsmImportModal({ zone, onClose, onImported }: Props): JSX.Elemen
 
           {!loading && !error && result && totalFound > 0 && createdCount === null && (
             <>
-              <div className="mb-2 text-[11px] text-slate-500">
-                Selecciona qué categorías crear como pines dentro de la zona:
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-[11px] text-slate-400">
+                  <span className="font-medium text-slate-200">{totalFound}</span> lugares encontrados · elige qué crear:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelected(new Set(CATEGORIES.filter((c) => (result.countsByCategory[c.key] ?? 0) > 0).map((c) => c.key)))}
+                  className="ml-auto rounded border border-surface-border px-1.5 py-0.5 text-[10px] text-slate-300 hover:bg-surface-2"
+                >
+                  Todo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelected(new Set())}
+                  className="rounded border border-surface-border px-1.5 py-0.5 text-[10px] text-slate-300 hover:bg-surface-2"
+                >
+                  Ninguno
+                </button>
               </div>
-              <div className="space-y-1">
+              <div className="max-h-72 space-y-1 overflow-y-auto pr-1">
                 {CATEGORIES.map((cat) => {
                   const count = result.countsByCategory[cat.key] ?? 0
                   const disabled = count === 0
