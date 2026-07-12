@@ -69,8 +69,10 @@
    condiciones (radio, nivel, misión requerida, uso único/repetible, reparto), simulador de apertura
 ✅ **Pin Recurso funcional** (doc 23): cantidad/rareza, herramienta y nivel requeridos, radio, respawn,
    modo de disponibilidad (personal/compartido/grupo/uso único) y simulador de recolección
-🟡 Verificación visual en Windows pendiente para Tienda/NPC/Diálogos/Monstruo/Cofre/Recurso (código + tests + build OK en CI)
-⚪ Ruta roja de enemigos + spawn por zona (docs 14, 21) — dibujar polilíneas + combate compartido (servidor)
+✅ **Rutas de enemigos** (doc 14, local): polilíneas rojas dibujables (tabla `enemy_routes`, mig. 008),
+   inspector con lista ponderada de enemigos + modos de spawn + activación, simulador de recorrido
+🟡 Verificación visual en Windows pendiente para pines (Tienda/NPC/Monstruo/Cofre/Recurso) y rutas (código + tests + build OK en CI)
+⚪ Combate compartido por proximidad + posiciones seguras de las rutas (docs 14, 21) — requiere servidor
 ⚪ Módulos centrales reutilizables de loot/recursos con "usado por" y borrado seguro (docs 22, 23 completos)
 ⚪ Inspector unificado con pestañas (doc 27) — hoy inspector básico + modales por tipo
 ⚪ Cadenas de misiones entre varios NPC y persistencia del progreso (requiere módulo dedicado / servidor)

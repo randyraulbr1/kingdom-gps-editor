@@ -92,6 +92,12 @@ const api: KingdomGpsApi = {
     delete: (zoneId) => ipcRenderer.invoke('worldZones:delete', zoneId),
     list: () => ipcRenderer.invoke('worldZones:list')
   },
+  enemyRoutes: {
+    create: (request) => ipcRenderer.invoke('enemyRoutes:create', request),
+    update: (request) => ipcRenderer.invoke('enemyRoutes:update', request),
+    delete: (routeId) => ipcRenderer.invoke('enemyRoutes:delete', routeId),
+    list: () => ipcRenderer.invoke('enemyRoutes:list')
+  },
   osm: {
     queryPlaces: (request) => ipcRenderer.invoke('osm:queryPlaces', request)
   },

@@ -144,6 +144,18 @@ export interface WorldZonesTable {
   deleted_at: string | null
 }
 
+export interface EnemyRoutesTable {
+  route_id: string
+  name: string
+  color: string
+  /** JSON array of {lat,lng} vertices (polyline, not closed). */
+  points: string
+  properties: string
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
 export interface Database {
   schema_migrations: SchemaMigrationsTable
   change_log: ChangeLogTable
@@ -154,4 +166,5 @@ export interface Database {
   armor: ArmorTable
   world_entities: WorldEntitiesTable
   world_zones: WorldZonesTable
+  enemy_routes: EnemyRoutesTable
 }

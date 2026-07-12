@@ -288,6 +288,40 @@ export interface UpdateWorldZoneRequest {
   patch: Partial<Omit<WorldZone, 'zoneId' | 'createdAt'>>
 }
 
+// ========== Rutas de enemigos (polilíneas rojas sobre el mapa, doc 14) ==========
+
+/**
+ * Una ruta de enemigos es una polilínea de puntos GPS (no cerrada) que
+ * representa un corredor donde pueden aparecer enemigos. La lista ponderada de
+ * enemigos y la configuración de spawn/activación viven en `properties` (JSON),
+ * igual que la config específica de cada pin. Persistida en SQLite
+ * (`enemy_routes`), con id ULID pensado para sobrevivir a la sync con servidor.
+ */
+export interface EnemyRoute {
+  routeId: string
+  name: string
+  /** Color del trazado (hex). Rojo por defecto. */
+  color: string
+  /** Vértices de la polilínea, en orden. */
+  points: Position[]
+  properties: Record<string, unknown>
+  createdAt: string
+  updatedAt: string
+  deletedAt: string | null
+}
+
+export interface CreateEnemyRouteRequest {
+  name: string
+  color: string
+  points: Position[]
+  properties?: Record<string, unknown>
+}
+
+export interface UpdateEnemyRouteRequest {
+  routeId: string
+  patch: Partial<Omit<EnemyRoute, 'routeId' | 'createdAt'>>
+}
+
 // ========== Integración OpenStreetMap (Overpass) ==========
 
 /** Categorías reales de OSM que el editor sabe consultar dentro de una zona. */

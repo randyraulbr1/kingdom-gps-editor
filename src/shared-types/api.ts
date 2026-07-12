@@ -21,6 +21,9 @@ import type {
   WorldZone,
   CreateWorldZoneRequest,
   UpdateWorldZoneRequest,
+  EnemyRoute,
+  CreateEnemyRouteRequest,
+  UpdateEnemyRouteRequest,
   OsmQueryRequest,
   OsmQueryResult
 } from './world'
@@ -133,6 +136,16 @@ export interface KingdomGpsApi {
     delete(zoneId: string): Promise<void>
     /** Listar todas las zonas activas */
     list(): Promise<WorldZone[]>
+  }
+  enemyRoutes: {
+    /** Crear una ruta de enemigos (polilínea) */
+    create(request: CreateEnemyRouteRequest): Promise<EnemyRoute>
+    /** Actualizar una ruta existente */
+    update(request: UpdateEnemyRouteRequest): Promise<EnemyRoute>
+    /** Eliminar (soft delete) una ruta */
+    delete(routeId: string): Promise<void>
+    /** Listar todas las rutas activas */
+    list(): Promise<EnemyRoute[]>
   }
   osm: {
     /** Consultar lugares reales de OpenStreetMap dentro de un polígono */

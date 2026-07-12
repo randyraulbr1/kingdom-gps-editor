@@ -39,6 +39,9 @@ No marcar una característica como terminada hasta que exista código, pruebas y
   condiciones (radio, nivel, misión requerida, uso único/repetible) y simulador de apertura.
 - **Pin Recurso funcional** (doc 23): cantidad, rareza, herramienta/nivel, radio, respawn,
   modo de disponibilidad y simulador de recolección.
+- **Rutas de enemigos** (doc 14): dibujo de polilíneas rojas sobre el mapa, tabla propia
+  en SQLite (`enemy_routes`, migración 008), inspector con lista ponderada de enemigos,
+  modos de spawn y simulador de recorrido del jugador.
 - Script `actualizar.bat` para actualizar y verificar la copia local en Windows con un doble clic.
 
 ## Trabajo completado en esta sesión
@@ -91,6 +94,12 @@ No marcar una característica como terminada hasta que exista código, pruebas y
    tiempos, radio, máx usos, modo de disponibilidad), `ResourceModal` con pestañas
    Recurso/GPS y respawn/Probar, simulador de recolección (rango/nivel/herramienta/
    inventario/usos) y validaciones. En `content/resourceConfig.ts`.
+9. **Rutas de enemigos** ✅ (doc 14, Fases A-C locales): tabla propia `enemy_routes`
+   (migración 008) con repositorio, IPC, preload y servicio; se dibuja una polilínea
+   roja con clic izquierdo (mín. 2 puntos), se cierra con doble clic / botón Finalizar
+   o se cancela con Escape; `RouteModal` (Ruta/Enemigos/Activación/Simular) con lista
+   ponderada de enemigos, modos de spawn y simulador de recorrido. Lógica pura en
+   `content/enemyRoute.ts` (longitud, peso, validación, simulación) con tests.
 
 > Nota de honestidad: todo lo anterior está implementado en código, persiste y
 > pasa typecheck/tests/build en este entorno (74/74 pruebas). **Falta la
@@ -119,8 +128,8 @@ No marcar una característica como terminada hasta que exista código, pruebas y
    simulador; falta módulo de tablas de loot reutilizables con "usado por" → doc 22 completo).
 5. ✅ Recursos, recolección y respawn (doc 23) (pin Recurso con simulador; falta
    sugerencia desde OSM por etiquetas y catálogo central de recursos).
-6. Rutas de enemigos y spawn por zona (doc 14) — **siguiente** (implica dibujar
-   rutas rojas sobre el mapa, es un bloque mayor que un pin).
+6. ✅ Rutas de enemigos y spawn por zona (doc 14, local) (polilíneas rojas +
+   inspector + simulador; falta combate compartido real y validación geográfica → servidor).
 
 ### Prioridad 3 — sistemas de seguridad del editor
 
@@ -143,11 +152,13 @@ Una función solo se marca como hecha cuando:
 
 ## Próxima tarea recomendada
 
-**Continuar la Prioridad 2 por las rutas de enemigos (doc 14),** que implica dibujar
-rutas rojas sobre el mapa (polilíneas) con lista ponderada de enemigos y spawn por
-zona — es un bloque mayor que un pin. Después, el módulo de tablas de loot/recursos
-reutilizables con "usado por". El patrón de pin ya probado (modelo saneado en
-`properties`, modal con pestañas, simulador local y tests) se mantiene. Regla del proyecto:
+**Con los pines y las rutas ya funcionales, la Prioridad 2 del mapa está esencialmente
+cubierta en local.** Lo siguiente natural (Prioridad 3, seguridad del editor): el
+**validador del mundo antes de publicar (doc 24)** — reunir en un panel todos los
+avisos de validación de pines/rutas/zonas y bloquear la publicación si hay errores;
+y los **catálogos centrales reutilizables** de loot/recursos con "usado por" (docs 22, 23).
+El patrón probado (modelo saneado en `properties`, modal con pestañas, simulador local
+y tests) se mantiene. Regla del proyecto:
 no avanzar al siguiente pin hasta que el anterior tenga typecheck limpio, tests
 verdes y build correcto. Antes de darlo por cerrado, pedir al usuario la
 verificación visual en Windows.

@@ -16,7 +16,9 @@ import 'leaflet/dist/leaflet.css'
 import { useWorldEditorStore, useVisibleEntities } from '../hooks/useWorldEditorStore'
 import { WorldEditorService } from '../services/entityService'
 import { ZoneService } from '../services/zoneService'
-import { WorldEntityType, type Position, type WorldZone } from '@shared-types/world'
+import { EnemyRouteService } from '../services/enemyRouteService'
+import { WorldEntityType, type Position, type WorldZone, type EnemyRoute } from '@shared-types/world'
+import { routeLengthMeters } from '../content/enemyRoute'
 import { getEntityIcon, getEntityColors } from '../utils/markerColors'
 import { isPointInPolygon } from '../utils/geo'
 import { LayersPanel } from './LayersPanel'
@@ -29,10 +31,11 @@ import { NpcModal } from './NpcModal'
 import { EnemyModal } from './EnemyModal'
 import { ChestModal } from './ChestModal'
 import { ResourceModal } from './ResourceModal'
+import { RouteModal } from './RouteModal'
 import { makeClipboardEntry, buildPasteRequest } from '../utils/clipboard'
 import { readNpcConfig, npcPinBadge } from '../content/npcConfig'
 import type { WorldEntityUI } from '../types'
-import { Layers, Map as MapIcon, Hexagon, Download, List } from 'lucide-react'
+import { Layers, Map as MapIcon, Hexagon, Download, List, Swords } from 'lucide-react'
 
 /** Color del punto de estado de sincronización que se muestra sobre cada marcador. */
 const SYNC_DOT_COLORS: Record<string, string> = {
@@ -230,14 +233,19 @@ function MapViewTracker({ onChange }: { onChange(center: [number, number], zoom:
 /** Captura clic izquierdo y clic derecho del mapa y los reenvía al panel. */
 function MapInteractions({
   onLeftClick,
-  onRightClick
+  onRightClick,
+  onDoubleClick
 }: {
   onLeftClick(position: Position): void
   onRightClick(position: Position, screen: { x: number; y: number }): void
+  onDoubleClick(): void
 }): null {
   useMapEvents({
     click(event: LeafletMouseEvent) {
       onLeftClick({ lat: event.latlng.lat, lng: event.latlng.lng })
+    },
+    dblclick() {
+      onDoubleClick()
     },
     contextmenu(event: LeafletMouseEvent) {
       event.originalEvent.preventDefault()
@@ -289,6 +297,12 @@ export function WorldMapPanel(): JSX.Element {
   const [zones, setZones] = useState<WorldZone[]>([])
   const [drawingPoints, setDrawingPoints] = useState<Position[] | null>(null)
 
+  // Rutas de enemigos (polilíneas rojas) y su dibujo
+  const [routes, setRoutes] = useState<EnemyRoute[]>([])
+  const [drawingRoute, setDrawingRoute] = useState<Position[] | null>(null)
+  const [selectedRoute, setSelectedRoute] = useState<EnemyRoute | null>(null)
+  const drawingRouteRef = useRef(false)
+
   // Refs espejo para que los handlers del mapa (registrados en Leaflet) siempre
   // lean el estado actual y no una copia congelada (evita clics que "no hacen nada").
   const drawingRef = useRef(false)
@@ -296,6 +310,9 @@ export function WorldMapPanel(): JSX.Element {
   useEffect(() => {
     drawingRef.current = drawingPoints !== null
   }, [drawingPoints])
+  useEffect(() => {
+    drawingRouteRef.current = drawingRoute !== null
+  }, [drawingRoute])
   useEffect(() => {
     placingRef.current = placing
   }, [placing])
@@ -323,6 +340,17 @@ export function WorldMapPanel(): JSX.Element {
     return () => window.removeEventListener('keydown', onKey)
   }, [contextMenu])
 
+  // Escape cancela el dibujo de una ruta de enemigos en curso (doc 14).
+  useEffect(() => {
+    if (drawingRoute === null) return
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') cancelRoute()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawingRoute])
+
   const reloadEntities = (): Promise<void> =>
     WorldEditorService.queryEntities({ limit: 2000 }).then((result) => loadEntities(result.items))
 
@@ -330,7 +358,8 @@ export function WorldMapPanel(): JSX.Element {
     setLoading(true)
     Promise.all([
       WorldEditorService.queryEntities({ limit: 2000 }).then((result) => loadEntities(result.items)),
-      ZoneService.list().then((list) => setZones(list))
+      ZoneService.list().then((list) => setZones(list)),
+      EnemyRouteService.list().then((list) => setRoutes(list))
     ]).finally(() => setLoading(false))
   }, [loadEntities, setLoading])
 
@@ -347,6 +376,10 @@ export function WorldMapPanel(): JSX.Element {
   }
 
   const handleLeftClick = (position: Position): void => {
+    if (drawingRouteRef.current) {
+      setDrawingRoute((prev) => (prev ? [...prev, position] : [position]))
+      return
+    }
     if (drawingRef.current) {
       setDrawingPoints((prev) => (prev ? [...prev, position] : [position]))
       return
@@ -493,6 +526,49 @@ export function WorldMapPanel(): JSX.Element {
   const updateZone = async (zoneId: string, patch: Partial<Pick<WorldZone, 'name' | 'color'>>): Promise<void> => {
     const updated = await ZoneService.update({ zoneId, patch })
     setZones((prev) => prev.map((z) => (z.zoneId === zoneId ? updated : z)))
+  }
+
+  // ===== Rutas de enemigos (polilíneas rojas, doc 14) =====
+
+  const startRoute = (firstPoint?: Position): void => {
+    setPlacing('')
+    setDrawingPoints(null)
+    setDrawingRoute(firstPoint ? [firstPoint] : [])
+    // Evita que el doble clic para finalizar haga zoom.
+    mapRef.current?.doubleClickZoom.disable()
+  }
+
+  const cancelRoute = (): void => {
+    setDrawingRoute(null)
+    mapRef.current?.doubleClickZoom.enable()
+  }
+
+  const finishRoute = async (): Promise<void> => {
+    const points = drawingRoute
+    setDrawingRoute(null)
+    mapRef.current?.doubleClickZoom.enable()
+    if (!points || points.length < 2) return
+    try {
+      const route = await EnemyRouteService.create({
+        name: `Ruta ${routes.length + 1}`,
+        color: '#ef4444',
+        points
+      })
+      setRoutes((prev) => [...prev, route])
+      setSelectedRoute(route)
+    } catch (error) {
+      window.alert(`No se pudo crear la ruta: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
+  const handleRouteSaved = (updated: EnemyRoute): void => {
+    setRoutes((prev) => prev.map((r) => (r.routeId === updated.routeId ? updated : r)))
+    setSelectedRoute(updated)
+  }
+
+  const handleRouteDeleted = (routeId: string): void => {
+    setRoutes((prev) => prev.filter((r) => r.routeId !== routeId))
+    setSelectedRoute(null)
   }
 
   const handleExport = async (): Promise<void> => {
@@ -646,7 +722,13 @@ export function WorldMapPanel(): JSX.Element {
                 persistView()
               }}
             />
-            <MapInteractions onLeftClick={handleLeftClick} onRightClick={handleRightClick} />
+            <MapInteractions
+              onLeftClick={handleLeftClick}
+              onRightClick={handleRightClick}
+              onDoubleClick={() => {
+                if (drawingRouteRef.current) void finishRoute()
+              }}
+            />
 
             {/* Zonas guardadas */}
             {zones.map((zone) => (
@@ -668,6 +750,44 @@ export function WorldMapPanel(): JSX.Element {
                 <Popup>{zone.name}</Popup>
               </Polygon>
             ))}
+
+            {/* Rutas de enemigos guardadas (polilíneas rojas) */}
+            {routes.map((route) => (
+              <Polyline
+                key={route.routeId}
+                positions={route.points.map((p) => [p.lat, p.lng])}
+                pathOptions={{ color: route.color, weight: 4, opacity: 0.9 }}
+                eventHandlers={{
+                  click: (event: LeafletMouseEvent) => {
+                    L.DomEvent.stopPropagation(event)
+                    setSelectedRoute(route)
+                  },
+                  contextmenu: (event: LeafletMouseEvent) => {
+                    event.originalEvent.preventDefault()
+                    L.DomEvent.stopPropagation(event)
+                    setSelectedRoute(route)
+                  }
+                }}
+              />
+            ))}
+
+            {/* Ruta de enemigos en construcción */}
+            {drawingRoute && drawingRoute.length > 0 && (
+              <>
+                <Polyline
+                  positions={drawingRoute.map((p) => [p.lat, p.lng])}
+                  pathOptions={{ color: '#ef4444', weight: 3, dashArray: '5' }}
+                />
+                {drawingRoute.map((p, index) => (
+                  <CircleMarker
+                    key={index}
+                    center={[p.lat, p.lng]}
+                    radius={index === 0 ? 6 : 4}
+                    pathOptions={{ color: '#ef4444', fillColor: index === 0 ? '#ef4444' : '#fca5a5', fillOpacity: 1, weight: 1 }}
+                  />
+                ))}
+              </>
+            )}
 
             {/* Zona en construcción */}
             {drawingPoints && drawingPoints.length > 0 && (
@@ -807,6 +927,41 @@ export function WorldMapPanel(): JSX.Element {
             </div>
           )}
 
+          {drawingRoute !== null && (
+            <div className="absolute left-1/2 top-3 z-[1000] flex -translate-x-1/2 items-center gap-2 rounded-md border border-red-500/50 bg-surface-1 px-3 py-1.5 text-xs shadow-lg">
+              <Swords size={12} className="text-red-400" />
+              <span className="text-slate-300">
+                Ruta de enemigos: {drawingRoute.length} punto(s) ·{' '}
+                {drawingRoute.length < 2
+                  ? 'clic izquierdo para añadir (mín. 2)'
+                  : `${Math.round(routeLengthMeters(drawingRoute))} m · doble clic o Finalizar para cerrar`}
+              </span>
+              <button
+                type="button"
+                disabled={drawingRoute.length < 1}
+                onClick={() => setDrawingRoute(drawingRoute.slice(0, -1))}
+                className="rounded border border-surface-border px-1.5 py-0.5 text-slate-300 hover:bg-surface-2 disabled:opacity-40"
+              >
+                Deshacer punto
+              </button>
+              <button
+                type="button"
+                disabled={drawingRoute.length < 2}
+                onClick={() => void finishRoute()}
+                className="rounded bg-red-500 px-1.5 py-0.5 font-medium text-white disabled:opacity-40"
+              >
+                Finalizar ruta
+              </button>
+              <button
+                type="button"
+                onClick={cancelRoute}
+                className="rounded border border-surface-border px-1.5 py-0.5 text-slate-300 hover:bg-surface-2"
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
+
           {contextMenu && (
             <div
               className="absolute inset-0 z-[1150]"
@@ -823,6 +978,7 @@ export function WorldMapPanel(): JSX.Element {
               onCreatePin={(position) => void createEntityAt(WorldEntityType.Marker, position)}
               onCreateEntity={(type, position) => void createEntityAt(type, position)}
               onStartZone={(position) => startZone(position)}
+              onStartRoute={(position) => startRoute(position)}
               onImportOsm={(zone) => setOsmZone(zone)}
               onDeleteZone={(zone) => void deleteZone(zone)}
               onSelectEntity={(worldId) => selectEntity(worldId)}
@@ -852,6 +1008,15 @@ export function WorldMapPanel(): JSX.Element {
           {chestEntity && <ChestModal entity={chestEntity} onClose={() => setChestEntity(null)} />}
 
           {resourceEntity && <ResourceModal entity={resourceEntity} onClose={() => setResourceEntity(null)} />}
+
+          {selectedRoute && (
+            <RouteModal
+              route={selectedRoute}
+              onSaved={handleRouteSaved}
+              onDeleted={handleRouteDeleted}
+              onClose={() => setSelectedRoute(null)}
+            />
+          )}
 
           {osmZone && (
             <OsmImportModal

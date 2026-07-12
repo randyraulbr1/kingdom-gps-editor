@@ -29,8 +29,9 @@ Actualizado: 2026-07-11 (integración de parche + menú contextual + pines Tiend
 | **Primitivas de loot compartidas** (tabla + tirada, reutilizadas por Monstruo y Cofre) | `content/lootTable` | ✅ |
 | **Pin Cofre/Loot funcional** (loot + monedas + exp, condiciones, simulador de apertura) | `worldEditor/components/ChestModal`, `content/chestConfig` | ✅ |
 | **Pin Recurso funcional** (cantidad, herramienta/nivel, radio, respawn, modo, simulador) | `worldEditor/components/ResourceModal`, `content/resourceConfig` | ✅ |
+| **Rutas de enemigos** (polilínea roja, tabla `enemy_routes` mig. 008, repo/IPC/servicio, inspector, simulador) | `main/worldEditor/enemyRouteRepository`, `worldEditor/components/RouteModal`, `content/enemyRoute` | ✅ |
 
-Verificado en este entorno: `typecheck` limpio, **112/112 pruebas**, `electron-vite build` OK.
+Verificado en este entorno: `typecheck` limpio, **128/128 pruebas**, `electron-vite build` OK.
 **Pendiente:** empaquetado `.exe` (`electron-builder --win`, requiere Windows) y
 **verificación visual en el Windows del usuario** de Tienda/NPC.
 
@@ -45,10 +46,13 @@ Verificado en este entorno: `typecheck` limpio, **112/112 pruebas**, `electron-v
 - Módulo de **tablas de loot reutilizables** con pestaña "usado por" y borrado seguro
   (doc 22) — hoy el loot vive embebido en cada pin (Monstruo/Cofre) con primitivas
   compartidas, pero no hay catálogo central de tablas ni gestión de referencias.
-- **Rutas de enemigos** (ruta roja) y spawn por zona (doc 14) — bloque mayor que
-  un pin: requiere dibujar polilíneas de ruta sobre el mapa.
+- **Combate compartido por proximidad** y validación geográfica de spawns de las
+  rutas de enemigos (docs 14, 21) — la ruta y su simulador local ya existen; el
+  combate multijugador y las posiciones seguras dependen del servidor.
 - Sugerencia de recursos desde OSM por etiquetas y catálogos centrales
   reutilizables de loot/recursos con "usado por" (docs 22, 23).
+- **Validador del mundo antes de publicar** (doc 24) y exportación de rutas al
+  `world.json` — hoy cada ficha valida por su cuenta; falta el panel unificado.
 - Administrador de referencias y borrado seguro (doc 19).
 - Validador del mundo y publicación (doc 24).
 - Capas, filtros y búsqueda avanzada (doc 26).

@@ -14,7 +14,8 @@ describe('migrationRunner', () => {
       '004_world_entities',
       '005_world_zones',
       '006_weapons',
-      '007_armor'
+      '007_armor',
+      '008_enemy_routes'
     ])
 
     const secondRun = await runMigrations(client)
@@ -32,7 +33,8 @@ describe('migrationRunner', () => {
         'weapons',
         'armor',
         'world_entities',
-        'world_zones'
+        'world_zones',
+        'enemy_routes'
       ])
     )
   })

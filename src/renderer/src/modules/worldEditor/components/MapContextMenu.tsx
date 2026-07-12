@@ -55,6 +55,7 @@ interface Props {
   onCreatePin(position: Position): void
   onCreateEntity(type: WorldEntityType, position: Position): void
   onStartZone(position: Position): void
+  onStartRoute(position: Position): void
   onImportOsm(zone: WorldZone): void
   onDeleteZone(zone: WorldZone): void
   onSelectEntity(worldId: string): void
@@ -387,6 +388,14 @@ function renderMapMenu(
         label="Iniciar zona aquí"
         onClick={() => {
           props.onStartZone(context.position)
+          onClose()
+        }}
+      />
+      <MenuItem
+        icon={<Swords size={13} className="text-red-400" />}
+        label="Crear ruta de enemigos"
+        onClick={() => {
+          props.onStartRoute(context.position)
           onClose()
         }}
       />
