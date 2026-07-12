@@ -44,6 +44,8 @@ No marcar una característica como terminada hasta que exista código, pruebas y
   modos de spawn y simulador de recorrido del jugador.
 - **Validador del mundo** (doc 24): revisa pines, zonas y rutas; panel con resumen y lista
   filtrable, "ir al elemento", y bloqueo de exportación si hay errores críticos.
+- **Capas, filtros y búsqueda** (doc 26): búsqueda global (nombre/tipo/ID) con navegación,
+  panel de capas con contadores y bloqueo de arrastre por tipo.
 - Script `actualizar.bat` para actualizar y verificar la copia local en Windows con un doble clic.
 
 ## Trabajo completado en esta sesión
@@ -108,6 +110,12 @@ No marcar una característica como terminada hasta que exista código, pruebas y
     severidad error/aviso/info; `WorldValidatorPanel` muestra resumen (%válido) y lista
     filtrable con "Ir al elemento"; **la exportación se bloquea si hay errores críticos**.
     Con tests. Pendiente (fases siguientes): corrección automática, versionado y rollback.
+11. **Capas, filtros y búsqueda** ✅ (doc 26, parte): `content/mapSearch.ts` (búsqueda
+    global por nombre/tipo/ID de pines, zonas y rutas, con tests) + `MapSearchBar`
+    (dropdown de resultados que centra el mapa y abre la ficha); `LayersPanel` con
+    contador por tipo y **bloqueo de capa** (impide arrastrar los marcadores de ese
+    tipo). Pendiente: filtros combinables avanzados, aislamiento, clustering y
+    selección múltiple con acciones masivas.
 
 > Nota de honestidad: todo lo anterior está implementado en código, persiste y
 > pasa typecheck/tests/build en este entorno (74/74 pruebas). **Falta la
@@ -144,7 +152,8 @@ No marcar una característica como terminada hasta que exista código, pruebas y
 - Administrador de referencias y borrado seguro (doc 19).
 - ✅ Validador del mundo antes de publicar (doc 24, Fase A) — hecho; falta corrección
   automática, versionado y rollback.
-- Capas, filtros y búsqueda (doc 26).
+- ✅ Capas, filtros y búsqueda (doc 26, parte) — búsqueda global + capas con contador/
+  bloqueo; falta filtros combinables, aislamiento, clustering y selección múltiple.
 - Panel de propiedades unificado (doc 27).
 
 ## Criterio de terminado
@@ -162,12 +171,12 @@ Una función solo se marca como hecha cuando:
 ## Próxima tarea recomendada
 
 **Con los pines y las rutas ya funcionales, la Prioridad 2 del mapa está esencialmente
-cubierta en local, y el validador del mundo (doc 24) ya está.** Lo siguiente natural
-(Prioridad 3, seguridad del editor): **capas, filtros y búsqueda del mapa (doc 26)**
-para manejar muchos elementos, o el **administrador de referencias y borrado seguro
-(doc 19)**. También queda profundizar el validador (corrección automática, versionado,
-rollback). El patrón probado (modelo saneado en `properties`, modal con pestañas,
-simulador local y tests) se mantiene. Regla del proyecto:
+cubierta en local; el validador (doc 24) y la búsqueda/capas (doc 26) ya están.**
+Lo siguiente natural: el **administrador de referencias y borrado seguro (doc 19)**
+(qué usa a qué, y aviso antes de borrar algo referenciado) o el **panel de
+propiedades unificado (doc 27)**. También queda profundizar el validador (corrección
+automática, versionado, rollback) y los filtros/aislamiento/clustering del doc 26.
+El patrón probado se mantiene. Regla del proyecto:
 no avanzar al siguiente pin hasta que el anterior tenga typecheck limpio, tests
 verdes y build correcto. Antes de darlo por cerrado, pedir al usuario la
 verificación visual en Windows.

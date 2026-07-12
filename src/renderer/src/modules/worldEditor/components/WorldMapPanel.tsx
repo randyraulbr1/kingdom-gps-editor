@@ -33,7 +33,9 @@ import { ChestModal } from './ChestModal'
 import { ResourceModal } from './ResourceModal'
 import { RouteModal } from './RouteModal'
 import { WorldValidatorPanel } from './WorldValidatorPanel'
+import { MapSearchBar } from './MapSearchBar'
 import { validateWorld, type WorldValidationSummary, type ValidationIssue } from '../content/worldValidator'
+import type { SearchResult } from '../content/mapSearch'
 import { makeClipboardEntry, buildPasteRequest } from '../utils/clipboard'
 import { readNpcConfig, npcPinBadge } from '../content/npcConfig'
 import type { WorldEntityUI } from '../types'
@@ -271,6 +273,7 @@ export function WorldMapPanel(): JSX.Element {
   const setLoading = useWorldEditorStore((s) => s.setLoading)
   const clipboard = useWorldEditorStore((s) => s.clipboard)
   const setClipboard = useWorldEditorStore((s) => s.setClipboard)
+  const layerLocked = useWorldEditorStore((s) => s.layerLocked)
 
   const [placing, setPlacing] = useState<WorldEntityType | ''>('')
   const [layersOpen, setLayersOpen] = useState(false)
@@ -601,6 +604,21 @@ export function WorldMapPanel(): JSX.Element {
     setValidation(null)
   }
 
+  // Desde un resultado de búsqueda (doc 26): centrar el mapa y abrir su ficha.
+  const goToSearchResult = (result: SearchResult): void => {
+    if (result.position) mapRef.current?.panTo([result.position.lat, result.position.lng])
+    if (result.kind === 'entity') {
+      const entity = useWorldEditorStore.getState().entities.find((e) => e.worldId === result.id)
+      if (entity) {
+        selectEntity(entity.worldId)
+        handleOpenInteraction(entity)
+      }
+    } else if (result.kind === 'route') {
+      const route = routes.find((r) => r.routeId === result.id)
+      if (route) setSelectedRoute(route)
+    }
+  }
+
   const handleExport = async (): Promise<void> => {
     // Validar antes de exportar (doc 24): los errores críticos bloquean la publicación.
     const summary = runValidation()
@@ -672,9 +690,10 @@ export function WorldMapPanel(): JSX.Element {
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-2 border-b border-surface-border bg-surface-1 px-3 py-2">
           <span className="text-xs text-slate-500">
-            {entities.length} entidades · {zones.length} zonas
+            {entities.length} entidades · {zones.length} zonas · {routes.length} rutas
           </span>
           <div className="ml-auto flex items-center gap-2">
+            <MapSearchBar zones={zones} routes={routes} onSelect={goToSearchResult} />
             <div className="flex items-center gap-1" title="Estilo del mapa">
               <MapIcon size={12} className="text-slate-500" />
               <select
@@ -888,7 +907,7 @@ export function WorldMapPanel(): JSX.Element {
               <Marker
                 key={entity.worldId}
                 position={[entity.position.lat, entity.position.lng]}
-                draggable
+                draggable={!layerLocked[entity.entityType]}
                 icon={makeDivIcon(
                   entity.entityType,
                   entity.worldId === selectedEntityId,

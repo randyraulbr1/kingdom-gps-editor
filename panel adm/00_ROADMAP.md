@@ -73,8 +73,11 @@
    inspector con lista ponderada de enemigos + modos de spawn + activación, simulador de recorrido
 ✅ **Validador del mundo** (doc 24, Fase A): revisa pines/zonas/rutas con severidad error/aviso/info,
    panel con resumen (%válido) y lista filtrable, "ir al elemento", y bloqueo de exportación con errores críticos
-🟡 Verificación visual en Windows pendiente para pines (Tienda/NPC/Monstruo/Cofre/Recurso), rutas y validador (código + tests + build OK en CI)
+✅ **Capas, filtros y búsqueda** (doc 26, parte): búsqueda global (nombre/tipo/ID) con navegación al elemento,
+   panel de capas con contador por tipo y bloqueo de arrastre
+🟡 Verificación visual en Windows pendiente para pines, rutas, validador y búsqueda/capas (código + tests + build OK en CI)
 ⚪ Validador fases B+: corrección automática, versionado y rollback (doc 24)
+⚪ Doc 26 resto: filtros combinables, aislamiento, clustering, selección múltiple con acciones masivas
 ⚪ Combate compartido por proximidad + posiciones seguras de las rutas (docs 14, 21) — requiere servidor
 ⚪ Módulos centrales reutilizables de loot/recursos con "usado por" y borrado seguro (docs 22, 23 completos)
 ⚪ Inspector unificado con pestañas (doc 27) — hoy inspector básico + modales por tipo
