@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   MapContainer,
   TileLayer,
@@ -36,6 +36,7 @@ import { WorldValidatorPanel } from './WorldValidatorPanel'
 import { MapSearchBar } from './MapSearchBar'
 import { validateWorld, type WorldValidationSummary, type ValidationIssue } from '../content/worldValidator'
 import type { SearchResult } from '../content/mapSearch'
+import { getReferencesTo, unlinkReference, worldIdsWithBrokenRefs } from '../content/referenceService'
 import { makeClipboardEntry, buildPasteRequest } from '../utils/clipboard'
 import { readNpcConfig, npcPinBadge } from '../content/npcConfig'
 import type { WorldEntityUI } from '../types'
@@ -173,8 +174,12 @@ function makeDivIcon(
   })
 }
 
-/** Indicador de contenido a mostrar sobre el marcador según su tipo/config. */
-function entityBadge(entity: WorldEntityUI): string | null {
+/**
+ * Indicador de contenido a mostrar sobre el marcador. Prioriza el aviso de
+ * referencia rota (⚠, doc 19); si no, el estado de misión del NPC (!/?/🛒).
+ */
+function entityBadge(entity: WorldEntityUI, brokenRefIds: Set<string>): string | null {
+  if (brokenRefIds.has(entity.worldId)) return '⚠'
   if (entity.entityType === WorldEntityType.Npc) {
     return npcPinBadge(readNpcConfig(entity.properties))
   }
@@ -274,6 +279,9 @@ export function WorldMapPanel(): JSX.Element {
   const clipboard = useWorldEditorStore((s) => s.clipboard)
   const setClipboard = useWorldEditorStore((s) => s.setClipboard)
   const layerLocked = useWorldEditorStore((s) => s.layerLocked)
+  const allEntities = useWorldEditorStore((s) => s.entities)
+  // Pines con alguna referencia saliente rota (doc 19): se marcan con ⚠ en el mapa.
+  const brokenRefIds = useMemo(() => worldIdsWithBrokenRefs(allEntities), [allEntities])
 
   const [placing, setPlacing] = useState<WorldEntityType | ''>('')
   const [layersOpen, setLayersOpen] = useState(false)
@@ -425,6 +433,26 @@ export function WorldMapPanel(): JSX.Element {
   }
 
   const handleDelete = async (worldId: string): Promise<void> => {
+    // Borrado seguro (doc 19): si otros pines lo referencian, avisar y ofrecer
+    // desvincular esas referencias antes de eliminar; nunca dejarlas rotas.
+    const all = useWorldEditorStore.getState().entities
+    const usedBy = getReferencesTo(worldId, all)
+    if (usedBy.length > 0) {
+      const list = usedBy.map((r) => `• ${r.fromName}: ${r.label}`).join('\n')
+      const ok = window.confirm(
+        `Este elemento lo usan ${usedBy.length} referencia(s):\n\n${list}\n\n` +
+          'Se desvincularán esas referencias (quedarán sin objetivo) y luego se eliminará. ¿Continuar?'
+      )
+      if (!ok) return
+      // Desvincular en cada entidad que lo referencia y persistir.
+      for (const ref of usedBy) {
+        const from = all.find((e) => e.worldId === ref.fromWorldId)
+        if (!from) continue
+        const properties = unlinkReference(from, worldId, ref.relation)
+        const updated = await WorldEditorService.updateEntity({ worldId: from.worldId, patch: { properties } })
+        updateEntity(from.worldId, updated)
+      }
+    }
     await WorldEditorService.deleteEntity({ worldId })
     removeEntity(worldId)
   }
@@ -912,7 +940,7 @@ export function WorldMapPanel(): JSX.Element {
                   entity.entityType,
                   entity.worldId === selectedEntityId,
                   entity.syncStatus,
-                  entityBadge(entity)
+                  entityBadge(entity, brokenRefIds)
                 )}
                 eventHandlers={{
                   click: () => selectEntity(entity.worldId),

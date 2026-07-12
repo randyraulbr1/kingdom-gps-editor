@@ -75,7 +75,9 @@
    panel con resumen (%válido) y lista filtrable, "ir al elemento", y bloqueo de exportación con errores críticos
 ✅ **Capas, filtros y búsqueda** (doc 26, parte): búsqueda global (nombre/tipo/ID) con navegación al elemento,
    panel de capas con contador por tipo y bloqueo de arrastre
-🟡 Verificación visual en Windows pendiente para pines, rutas, validador y búsqueda/capas (código + tests + build OK en CI)
+✅ **Administrador de referencias y borrado seguro** (doc 19, Fase 1): "usado por" en el inspector, aviso ⚠
+   sobre pines con referencia rota, y borrado que desvincula las referencias antes de eliminar (nunca las deja rotas)
+🟡 Verificación visual en Windows pendiente para pines, rutas, validador, búsqueda/capas y referencias (código + tests + build OK en CI)
 ⚪ Validador fases B+: corrección automática, versionado y rollback (doc 24)
 ⚪ Doc 26 resto: filtros combinables, aislamiento, clustering, selección múltiple con acciones masivas
 ⚪ Combate compartido por proximidad + posiciones seguras de las rutas (docs 14, 21) — requiere servidor

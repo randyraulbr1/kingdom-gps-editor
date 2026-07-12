@@ -32,8 +32,9 @@ Actualizado: 2026-07-11 (integración de parche + menú contextual + pines Tiend
 | **Rutas de enemigos** (polilínea roja, tabla `enemy_routes` mig. 008, repo/IPC/servicio, inspector, simulador) | `main/worldEditor/enemyRouteRepository`, `worldEditor/components/RouteModal`, `content/enemyRoute` | ✅ |
 | **Validador del mundo** (avisos de todos los tipos, panel filtrable, "ir al elemento", bloqueo de export) | `content/worldValidator`, `worldEditor/components/WorldValidatorPanel` | ✅ |
 | **Búsqueda global + capas** (buscar por nombre/tipo/ID y navegar; capas con contador y bloqueo) | `content/mapSearch`, `worldEditor/components/MapSearchBar`, `LayersPanel` | ✅ |
+| **Administrador de referencias + borrado seguro** ("usado por", ⚠ referencia rota, desvincular al borrar) | `content/referenceService`, `EntityInspector`, `WorldMapPanel` | ✅ |
 
-Verificado en este entorno: `typecheck` limpio, **141/141 pruebas**, `electron-vite build` OK.
+Verificado en este entorno: `typecheck` limpio, **146/146 pruebas**, `electron-vite build` OK.
 **Pendiente:** empaquetado `.exe` (`electron-builder --win`, requiere Windows) y
 **verificación visual en el Windows del usuario** de Tienda/NPC.
 

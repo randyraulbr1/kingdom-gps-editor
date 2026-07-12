@@ -1,8 +1,9 @@
-import { Trash2, Copy, Power, Store, MessageSquare, Swords, Package, Pickaxe } from 'lucide-react'
+import { Trash2, Copy, Power, Store, MessageSquare, Swords, Package, Pickaxe, Link2 } from 'lucide-react'
 import { WorldEntityType } from '@shared-types/world'
 import { useSelectedEntity, useWorldEditorStore } from '../hooks/useWorldEditorStore'
 import { WorldEditorService } from '../services/entityService'
 import { TextField } from '@renderer/shared/components/inspector/fields'
+import { getReferencesTo } from '../content/referenceService'
 import type { WorldEntityUI } from '../types'
 
 interface EntityInspectorProps {
@@ -15,6 +16,8 @@ export function EntityInspector({ onDelete, onOpenInteraction }: EntityInspector
   const updateEntity = useWorldEditorStore((s) => s.updateEntity)
   const addEntity = useWorldEditorStore((s) => s.addEntity)
   const selectEntity = useWorldEditorStore((s) => s.selectEntity)
+  const allEntities = useWorldEditorStore((s) => s.entities)
+  const usedBy = entity ? getReferencesTo(entity.worldId, allEntities) : []
 
   if (!entity) {
     return (
@@ -63,6 +66,31 @@ export function EntityInspector({ onDelete, onOpenInteraction }: EntityInspector
         <span className="inline-flex rounded-full border border-surface-border bg-surface-2 px-2 py-0.5 text-[10px] text-slate-300">
           {entity.syncStatus}
         </span>
+      </div>
+
+      <div>
+        <label className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <Link2 size={12} /> Usado por
+        </label>
+        {usedBy.length === 0 ? (
+          <div className="text-xs text-slate-500">Nada lo referencia todavía.</div>
+        ) : (
+          <ul className="flex flex-col gap-1">
+            {usedBy.map((ref, i) => (
+              <li key={i} className="flex items-center gap-1.5 text-xs text-slate-300">
+                <button
+                  type="button"
+                  onClick={() => selectEntity(ref.fromWorldId)}
+                  className="truncate text-left text-accent hover:underline"
+                  title="Seleccionar el elemento que lo usa"
+                >
+                  {ref.fromName}
+                </button>
+                <span className="truncate text-[10px] text-slate-500">· {ref.label}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="flex flex-col gap-1.5">

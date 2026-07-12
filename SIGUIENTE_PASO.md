@@ -46,6 +46,8 @@ No marcar una característica como terminada hasta que exista código, pruebas y
   filtrable, "ir al elemento", y bloqueo de exportación si hay errores críticos.
 - **Capas, filtros y búsqueda** (doc 26): búsqueda global (nombre/tipo/ID) con navegación,
   panel de capas con contadores y bloqueo de arrastre por tipo.
+- **Administrador de referencias y borrado seguro** (doc 19): "usado por" en el inspector,
+  aviso ⚠ sobre pines con referencia rota, y borrado seguro que desvincula antes de eliminar.
 - Script `actualizar.bat` para actualizar y verificar la copia local en Windows con un doble clic.
 
 ## Trabajo completado en esta sesión
@@ -116,6 +118,14 @@ No marcar una característica como terminada hasta que exista código, pruebas y
     contador por tipo y **bloqueo de capa** (impide arrastrar los marcadores de ese
     tipo). Pendiente: filtros combinables avanzados, aislamiento, clustering y
     selección múltiple con acciones masivas.
+12. **Administrador de referencias y borrado seguro** ✅ (doc 19, Fase 1):
+    `content/referenceService.ts` (lógica pura, con tests) resuelve "¿quién usa
+    este pin?" (`getReferencesTo`), detecta referencias rotas y desvincula. El
+    inspector muestra **"Usado por"**; los marcadores con referencia rota llevan
+    un **⚠**; y **borrar un pin referenciado avisa y desvincula** las referencias
+    (nunca las deja rotas). Relaciones actuales: pasos de misión de NPC y misión
+    requerida de cofre (extensible). Pendiente: reemplazar referencia y undo/redo
+    de la desvinculación.
 
 > Nota de honestidad: todo lo anterior está implementado en código, persiste y
 > pasa typecheck/tests/build en este entorno (74/74 pruebas). **Falta la
@@ -149,7 +159,8 @@ No marcar una característica como terminada hasta que exista código, pruebas y
 
 ### Prioridad 3 — sistemas de seguridad del editor
 
-- Administrador de referencias y borrado seguro (doc 19).
+- ✅ Administrador de referencias y borrado seguro (doc 19, Fase 1) — "usado por",
+  aviso de rotas y desvincular al borrar; falta reemplazar referencia y undo/redo.
 - ✅ Validador del mundo antes de publicar (doc 24, Fase A) — hecho; falta corrección
   automática, versionado y rollback.
 - ✅ Capas, filtros y búsqueda (doc 26, parte) — búsqueda global + capas con contador/
@@ -172,11 +183,12 @@ Una función solo se marca como hecha cuando:
 
 **Con los pines y las rutas ya funcionales, la Prioridad 2 del mapa está esencialmente
 cubierta en local; el validador (doc 24) y la búsqueda/capas (doc 26) ya están.**
-Lo siguiente natural: el **administrador de referencias y borrado seguro (doc 19)**
-(qué usa a qué, y aviso antes de borrar algo referenciado) o el **panel de
-propiedades unificado (doc 27)**. También queda profundizar el validador (corrección
-automática, versionado, rollback) y los filtros/aislamiento/clustering del doc 26.
-El patrón probado se mantiene. Regla del proyecto:
+Lo siguiente natural: el **panel de propiedades unificado (doc 27)** — un inspector
+con pestañas (General/Configuración/Interacciones/Referencias/Historial) que agrupe
+lo que hoy vive en modales separados. También queda profundizar el validador
+(corrección automática, versionado, rollback), el doc 19 (reemplazar referencia +
+undo/redo) y los filtros/aislamiento/clustering del doc 26. El patrón probado se
+mantiene. Regla del proyecto:
 no avanzar al siguiente pin hasta que el anterior tenga typecheck limpio, tests
 verdes y build correcto. Antes de darlo por cerrado, pedir al usuario la
 verificación visual en Windows.
