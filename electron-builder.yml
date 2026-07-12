@@ -1,0 +1,22 @@
+appId: com.kingdomgps.editor
+productName: KingdomGPS Editor
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - package.json
+# electron-vite genera los bundles en out/{main,preload,renderer}; el resto del
+# árbol (src, tests…) no se empaqueta.
+win:
+  target:
+    - nsis
+  artifactName: KingdomGPS-Editor-Setup-${version}.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: KingdomGPS Editor
+# Herramienta interna: el instalador va sin firmar (Windows mostrará SmartScreen).
