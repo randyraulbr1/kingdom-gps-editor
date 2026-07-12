@@ -30,8 +30,9 @@ Actualizado: 2026-07-11 (integración de parche + menú contextual + pines Tiend
 | **Pin Cofre/Loot funcional** (loot + monedas + exp, condiciones, simulador de apertura) | `worldEditor/components/ChestModal`, `content/chestConfig` | ✅ |
 | **Pin Recurso funcional** (cantidad, herramienta/nivel, radio, respawn, modo, simulador) | `worldEditor/components/ResourceModal`, `content/resourceConfig` | ✅ |
 | **Rutas de enemigos** (polilínea roja, tabla `enemy_routes` mig. 008, repo/IPC/servicio, inspector, simulador) | `main/worldEditor/enemyRouteRepository`, `worldEditor/components/RouteModal`, `content/enemyRoute` | ✅ |
+| **Validador del mundo** (avisos de todos los tipos, panel filtrable, "ir al elemento", bloqueo de export) | `content/worldValidator`, `worldEditor/components/WorldValidatorPanel` | ✅ |
 
-Verificado en este entorno: `typecheck` limpio, **128/128 pruebas**, `electron-vite build` OK.
+Verificado en este entorno: `typecheck` limpio, **134/134 pruebas**, `electron-vite build` OK.
 **Pendiente:** empaquetado `.exe` (`electron-builder --win`, requiere Windows) y
 **verificación visual en el Windows del usuario** de Tienda/NPC.
 
@@ -51,8 +52,10 @@ Verificado en este entorno: `typecheck` limpio, **128/128 pruebas**, `electron-v
   combate multijugador y las posiciones seguras dependen del servidor.
 - Sugerencia de recursos desde OSM por etiquetas y catálogos centrales
   reutilizables de loot/recursos con "usado por" (docs 22, 23).
-- **Validador del mundo antes de publicar** (doc 24) y exportación de rutas al
-  `world.json` — hoy cada ficha valida por su cuenta; falta el panel unificado.
+- **Corrección automática, versionado y rollback** del validador del mundo (doc 24,
+  fases B+) — la validación y el panel ya existen; falta arreglar en un clic,
+  guardar versiones y restaurar. La exportación de rutas al `world.json` también
+  sigue pendiente (hoy exporta entidades + zonas).
 - Administrador de referencias y borrado seguro (doc 19).
 - Validador del mundo y publicación (doc 24).
 - Capas, filtros y búsqueda avanzada (doc 26).

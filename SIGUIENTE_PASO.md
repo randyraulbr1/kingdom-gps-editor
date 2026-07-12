@@ -42,6 +42,8 @@ No marcar una característica como terminada hasta que exista código, pruebas y
 - **Rutas de enemigos** (doc 14): dibujo de polilíneas rojas sobre el mapa, tabla propia
   en SQLite (`enemy_routes`, migración 008), inspector con lista ponderada de enemigos,
   modos de spawn y simulador de recorrido del jugador.
+- **Validador del mundo** (doc 24): revisa pines, zonas y rutas; panel con resumen y lista
+  filtrable, "ir al elemento", y bloqueo de exportación si hay errores críticos.
 - Script `actualizar.bat` para actualizar y verificar la copia local en Windows con un doble clic.
 
 ## Trabajo completado en esta sesión
@@ -100,6 +102,12 @@ No marcar una característica como terminada hasta que exista código, pruebas y
    o se cancela con Escape; `RouteModal` (Ruta/Enemigos/Activación/Simular) con lista
    ponderada de enemigos, modos de spawn y simulador de recorrido. Lógica pura en
    `content/enemyRoute.ts` (longitud, peso, validación, simulación) con tests.
+10. **Validador del mundo** ✅ (doc 24, Fase A): `content/worldValidator.ts` reúne los
+    avisos de todos los tipos (tienda sin catálogo, NPC sin diálogo, monstruo/cofre/
+    recurso inválidos, ruta sin enemigos, zona inválida, coordenadas, duplicados) con
+    severidad error/aviso/info; `WorldValidatorPanel` muestra resumen (%válido) y lista
+    filtrable con "Ir al elemento"; **la exportación se bloquea si hay errores críticos**.
+    Con tests. Pendiente (fases siguientes): corrección automática, versionado y rollback.
 
 > Nota de honestidad: todo lo anterior está implementado en código, persiste y
 > pasa typecheck/tests/build en este entorno (74/74 pruebas). **Falta la
@@ -134,7 +142,8 @@ No marcar una característica como terminada hasta que exista código, pruebas y
 ### Prioridad 3 — sistemas de seguridad del editor
 
 - Administrador de referencias y borrado seguro (doc 19).
-- Validador del mundo antes de publicar (doc 24).
+- ✅ Validador del mundo antes de publicar (doc 24, Fase A) — hecho; falta corrección
+  automática, versionado y rollback.
 - Capas, filtros y búsqueda (doc 26).
 - Panel de propiedades unificado (doc 27).
 
@@ -153,12 +162,12 @@ Una función solo se marca como hecha cuando:
 ## Próxima tarea recomendada
 
 **Con los pines y las rutas ya funcionales, la Prioridad 2 del mapa está esencialmente
-cubierta en local.** Lo siguiente natural (Prioridad 3, seguridad del editor): el
-**validador del mundo antes de publicar (doc 24)** — reunir en un panel todos los
-avisos de validación de pines/rutas/zonas y bloquear la publicación si hay errores;
-y los **catálogos centrales reutilizables** de loot/recursos con "usado por" (docs 22, 23).
-El patrón probado (modelo saneado en `properties`, modal con pestañas, simulador local
-y tests) se mantiene. Regla del proyecto:
+cubierta en local, y el validador del mundo (doc 24) ya está.** Lo siguiente natural
+(Prioridad 3, seguridad del editor): **capas, filtros y búsqueda del mapa (doc 26)**
+para manejar muchos elementos, o el **administrador de referencias y borrado seguro
+(doc 19)**. También queda profundizar el validador (corrección automática, versionado,
+rollback). El patrón probado (modelo saneado en `properties`, modal con pestañas,
+simulador local y tests) se mantiene. Regla del proyecto:
 no avanzar al siguiente pin hasta que el anterior tenga typecheck limpio, tests
 verdes y build correcto. Antes de darlo por cerrado, pedir al usuario la
 verificación visual en Windows.

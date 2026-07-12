@@ -101,6 +101,26 @@ export function writeShopConfig(
   return { ...(properties ?? {}), shop: config }
 }
 
+export interface ShopValidationError {
+  code: 'empty_catalog' | 'item_missing_name' | 'invalid_prices'
+  message: string
+}
+
+/** Valida la config de la tienda (doc 24: "Tiendas sin catálogo bloquea publicación"). */
+export function validateShopConfig(config: ShopConfig): ShopValidationError[] {
+  const errors: ShopValidationError[] = []
+  if (config.catalog.length === 0) {
+    errors.push({ code: 'empty_catalog', message: 'La tienda no tiene catálogo (sin productos)' })
+  }
+  for (const item of config.catalog) {
+    if (!item.itemName.trim()) {
+      errors.push({ code: 'item_missing_name', message: 'Hay un producto sin nombre en el catálogo' })
+      break
+    }
+  }
+  return errors
+}
+
 export interface PurchaseSimInput {
   playerMoney: number
   /** Distancia del jugador al pin, en metros. */

@@ -71,7 +71,10 @@
    modo de disponibilidad (personal/compartido/grupo/uso único) y simulador de recolección
 ✅ **Rutas de enemigos** (doc 14, local): polilíneas rojas dibujables (tabla `enemy_routes`, mig. 008),
    inspector con lista ponderada de enemigos + modos de spawn + activación, simulador de recorrido
-🟡 Verificación visual en Windows pendiente para pines (Tienda/NPC/Monstruo/Cofre/Recurso) y rutas (código + tests + build OK en CI)
+✅ **Validador del mundo** (doc 24, Fase A): revisa pines/zonas/rutas con severidad error/aviso/info,
+   panel con resumen (%válido) y lista filtrable, "ir al elemento", y bloqueo de exportación con errores críticos
+🟡 Verificación visual en Windows pendiente para pines (Tienda/NPC/Monstruo/Cofre/Recurso), rutas y validador (código + tests + build OK en CI)
+⚪ Validador fases B+: corrección automática, versionado y rollback (doc 24)
 ⚪ Combate compartido por proximidad + posiciones seguras de las rutas (docs 14, 21) — requiere servidor
 ⚪ Módulos centrales reutilizables de loot/recursos con "usado por" y borrado seguro (docs 22, 23 completos)
 ⚪ Inspector unificado con pestañas (doc 27) — hoy inspector básico + modales por tipo

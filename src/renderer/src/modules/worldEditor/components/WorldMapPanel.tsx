@@ -32,10 +32,12 @@ import { EnemyModal } from './EnemyModal'
 import { ChestModal } from './ChestModal'
 import { ResourceModal } from './ResourceModal'
 import { RouteModal } from './RouteModal'
+import { WorldValidatorPanel } from './WorldValidatorPanel'
+import { validateWorld, type WorldValidationSummary, type ValidationIssue } from '../content/worldValidator'
 import { makeClipboardEntry, buildPasteRequest } from '../utils/clipboard'
 import { readNpcConfig, npcPinBadge } from '../content/npcConfig'
 import type { WorldEntityUI } from '../types'
-import { Layers, Map as MapIcon, Hexagon, Download, List, Swords } from 'lucide-react'
+import { Layers, Map as MapIcon, Hexagon, Download, List, Swords, ShieldCheck } from 'lucide-react'
 
 /** Color del punto de estado de sincronización que se muestra sobre cada marcador. */
 const SYNC_DOT_COLORS: Record<string, string> = {
@@ -302,6 +304,9 @@ export function WorldMapPanel(): JSX.Element {
   const [drawingRoute, setDrawingRoute] = useState<Position[] | null>(null)
   const [selectedRoute, setSelectedRoute] = useState<EnemyRoute | null>(null)
   const drawingRouteRef = useRef(false)
+
+  // Validador del mundo (doc 24)
+  const [validation, setValidation] = useState<WorldValidationSummary | null>(null)
 
   // Refs espejo para que los handlers del mapa (registrados en Leaflet) siempre
   // lean el estado actual y no una copia congelada (evita clics que "no hacen nada").
@@ -571,7 +576,45 @@ export function WorldMapPanel(): JSX.Element {
     setSelectedRoute(null)
   }
 
+  // ===== Validador del mundo (doc 24) =====
+
+  const runValidation = (): WorldValidationSummary => {
+    const entitiesNow = useWorldEditorStore.getState().entities
+    const summary = validateWorld({ entities: entitiesNow, zones, routes })
+    setValidation(summary)
+    return summary
+  }
+
+  // Desde un aviso: centrar el mapa en el elemento y abrir su ficha/inspector.
+  const goToIssue = (issue: ValidationIssue): void => {
+    if (issue.position) mapRef.current?.panTo([issue.position.lat, issue.position.lng])
+    if (issue.targetKind === 'entity') {
+      const entity = useWorldEditorStore.getState().entities.find((e) => e.worldId === issue.targetId)
+      if (entity) {
+        selectEntity(entity.worldId)
+        handleOpenInteraction(entity)
+      }
+    } else if (issue.targetKind === 'route') {
+      const route = routes.find((r) => r.routeId === issue.targetId)
+      if (route) setSelectedRoute(route)
+    }
+    setValidation(null)
+  }
+
   const handleExport = async (): Promise<void> => {
+    // Validar antes de exportar (doc 24): los errores críticos bloquean la publicación.
+    const summary = runValidation()
+    if (summary.errors > 0) {
+      window.alert(
+        `No se puede exportar: hay ${summary.errors} error(es) crítico(s).\n` +
+          'Revisa el panel de validación y corrígelos antes de publicar.'
+      )
+      return
+    }
+    if (summary.warnings > 0 && !window.confirm(`Hay ${summary.warnings} advertencia(s). ¿Exportar de todos modos?`)) {
+      return
+    }
+    setValidation(null)
     setExporting(true)
     try {
       const result = await window.api.export.world()
@@ -691,9 +734,17 @@ export function WorldMapPanel(): JSX.Element {
             </button>
             <button
               type="button"
+              onClick={() => runValidation()}
+              title="Validar el mundo (pines, zonas y rutas) antes de publicar"
+              className="flex items-center gap-1 rounded-md border border-surface-border px-2 py-1.5 text-xs text-slate-300 hover:bg-surface-2"
+            >
+              <ShieldCheck size={12} /> Validar
+            </button>
+            <button
+              type="button"
               onClick={() => void handleExport()}
               disabled={exporting}
-              title="Exportar el mundo (entidades + zonas) a export/world.json"
+              title="Validar y exportar el mundo (entidades + zonas) a export/world.json"
               className="flex items-center gap-1 rounded-md border border-surface-border px-2 py-1.5 text-xs text-slate-300 hover:bg-surface-2 disabled:opacity-40"
             >
               <Download size={12} /> {exporting ? 'Exportando…' : 'Exportar'}
@@ -1015,6 +1066,15 @@ export function WorldMapPanel(): JSX.Element {
               onSaved={handleRouteSaved}
               onDeleted={handleRouteDeleted}
               onClose={() => setSelectedRoute(null)}
+            />
+          )}
+
+          {validation && (
+            <WorldValidatorPanel
+              summary={validation}
+              onGoTo={goToIssue}
+              onRevalidate={runValidation}
+              onClose={() => setValidation(null)}
             />
           )}
 
