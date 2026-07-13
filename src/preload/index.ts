@@ -129,7 +129,11 @@ const api: KingdomGpsApi = {
   players: {
     list: () => ipcRenderer.invoke('players:list'),
     create: (input) => ipcRenderer.invoke('players:create', input),
-    clearAll: () => ipcRenderer.invoke('players:clearAll')
+    clearAll: () => ipcRenderer.invoke('players:clearAll'),
+    edit: (input) => ipcRenderer.invoke('players:edit', input),
+    setPassword: (id, password) => ipcRenderer.invoke('players:setPassword', id, password),
+    ban: (id, ban) => ipcRenderer.invoke('players:ban', id, ban),
+    delete: (id) => ipcRenderer.invoke('players:delete', id)
   },
   dialog: {
     pickFolder: () => ipcRenderer.invoke('dialog:pickFolder')

@@ -53,6 +53,7 @@ export interface GamePlayer {
   vida?: number | null
   hambre?: number | null
   muerto?: boolean
+  baneado?: boolean
   /** Total de objetos en la mochila. */
   objetos?: number
   /** Posición GPS [lat, lng] si existe. */
@@ -65,6 +66,17 @@ export interface CreatePlayerInput {
   usuario: string
   password: string
   telefono?: string
+}
+
+/** Campos editables de un jugador (todos opcionales; solo se envían los que cambian). */
+export interface PlayerEditInput {
+  id: string
+  dinero?: number
+  nivel?: number
+  experiencia?: number
+  vida?: number
+  hambre?: number
+  posicion?: [number, number]
 }
 
 /** Resultado genérico de una operación de administración de jugadores. */

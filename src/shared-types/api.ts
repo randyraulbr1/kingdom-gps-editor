@@ -14,6 +14,7 @@ import type {
   ServerAuthStatus,
   GamePlayer,
   CreatePlayerInput,
+  PlayerEditInput,
   PlayerAdminResult
 } from './system'
 import type {
@@ -195,12 +196,20 @@ export interface KingdomGpsApi {
     checkAuth(): Promise<ServerAuthStatus>
   }
   players: {
-    /** Lista de jugadores del mundo. */
+    /** Lista de jugadores reales con sus datos de partida. */
     list(): Promise<GamePlayer[]>
-    /** Crea una cuenta de jugador de prueba. */
+    /** Crea una cuenta de jugador. */
     create(input: CreatePlayerInput): Promise<PlayerAdminResult>
     /** Limpia todas las cuentas dejando solo la de admin (respaldada antes). */
     clearAll(): Promise<PlayerAdminResult>
+    /** Edita los datos de partida de un jugador. */
+    edit(input: PlayerEditInput): Promise<PlayerAdminResult>
+    /** Cambia la contraseña de un jugador. */
+    setPassword(id: string, password: string): Promise<PlayerAdminResult>
+    /** Banea o desbanea un jugador. */
+    ban(id: string, ban: boolean): Promise<PlayerAdminResult>
+    /** Elimina un jugador (queda en papelera recuperable). */
+    delete(id: string): Promise<PlayerAdminResult>
   }
   dialog: {
     pickFolder(): Promise<string | null>

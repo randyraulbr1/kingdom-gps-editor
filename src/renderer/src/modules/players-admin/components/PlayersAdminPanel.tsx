@@ -162,7 +162,14 @@ export function PlayersAdminPanel(): JSX.Element {
         ) : (
           <ul className="divide-y divide-surface-border">
             {list.map((p) => (
-              <PlayerRow key={p.id} player={p} expanded={expandedId === p.id} onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)} />
+              <PlayerRow
+                key={p.id}
+                player={p}
+                expanded={expandedId === p.id}
+                onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)}
+                onChanged={() => void refresh()}
+                flash={flash}
+              />
             ))}
           </ul>
         )}
@@ -223,17 +230,79 @@ function Header(): JSX.Element {
   )
 }
 
-/** Una fila de jugador real, desplegable para ver sus datos de partida. */
+/** Una fila de jugador real, desplegable para ver y EDITAR sus datos. */
 function PlayerRow({
   player,
   expanded,
-  onToggle
+  onToggle,
+  onChanged,
+  flash
 }: {
   player: GamePlayer
   expanded: boolean
   onToggle(): void
+  onChanged(): void
+  flash(ok: boolean, text: string): void
 }): JSX.Element {
+  const api = window.api.players
+  const [edit, setEdit] = useState({
+    dinero: String(player.dinero ?? 0),
+    nivel: String(player.nivel ?? 1),
+    experiencia: String(player.experiencia ?? 0),
+    vida: player.vida != null ? String(player.vida) : '',
+    hambre: player.hambre != null ? String(player.hambre) : ''
+  })
+  const [newPass, setNewPass] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  // Solo dígitos (evita el spinner de type=number y caracteres raros).
+  const onlyInt = (v: string): string => v.replace(/[^0-9]/g, '')
+
+  const saveStats = async (): Promise<void> => {
+    setBusy(true)
+    const toNum = (v: string): number | undefined => (v.trim() === '' ? undefined : Number(v))
+    const result = await api.edit({
+      id: player.id,
+      dinero: toNum(edit.dinero),
+      nivel: toNum(edit.nivel),
+      experiencia: toNum(edit.experiencia),
+      vida: toNum(edit.vida),
+      hambre: toNum(edit.hambre)
+    })
+    setBusy(false)
+    flash(result.ok, result.message)
+    if (result.ok) onChanged()
+  }
+
+  const changePass = async (): Promise<void> => {
+    if (newPass.length < 4) return flash(false, 'La contraseña necesita al menos 4 caracteres.')
+    setBusy(true)
+    const result = await api.setPassword(player.id, newPass)
+    setBusy(false)
+    flash(result.ok, result.message)
+    if (result.ok) setNewPass('')
+  }
+
+  const toggleBan = async (): Promise<void> => {
+    setBusy(true)
+    const result = await api.ban(player.id, !isBanned(player))
+    setBusy(false)
+    flash(result.ok, result.message)
+    if (result.ok) onChanged()
+  }
+
+  const remove = async (): Promise<void> => {
+    setConfirmDelete(false)
+    setBusy(true)
+    const result = await api.delete(player.id)
+    setBusy(false)
+    flash(result.ok, result.message)
+    if (result.ok) onChanged()
+  }
+
   const pos = player.posicion
+
   return (
     <li className="py-1">
       <button
@@ -252,23 +321,122 @@ function PlayerRow({
       </button>
 
       {expanded && (
-        <div className="ml-6 mb-1 grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border border-surface-border bg-surface-2/50 p-2 text-[11px] text-slate-300 sm:grid-cols-3">
-          <Datum icon={<Star size={11} className="text-slate-400" />} label="Nivel" value={String(player.nivel ?? 1)} />
-          <Datum icon={<Coins size={11} className="text-amber-400" />} label="Dinero" value={`$ ${player.dinero ?? 0}`} />
-          <Datum icon={<Star size={11} className="text-sky-400" />} label="Experiencia" value={String(player.experiencia ?? 0)} />
-          <Datum icon={<Heart size={11} className="text-red-400" />} label="Vida" value={player.vida != null ? String(player.vida) : '—'} />
-          <Datum icon={<Utensils size={11} className="text-orange-400" />} label="Hambre" value={player.hambre != null ? String(player.hambre) : '—'} />
-          <Datum icon={<Backpack size={11} className="text-slate-400" />} label="Objetos" value={String(player.objetos ?? 0)} />
-          <Datum
-            icon={<MapPin size={11} className="text-green-400" />}
-            label="Posición"
-            value={pos ? `${pos[0].toFixed(5)}, ${pos[1].toFixed(5)}` : '—'}
-          />
-          {player.telefono && <Datum icon={<Info size={11} className="text-slate-400" />} label="Teléfono" value={player.telefono} />}
-          <Datum icon={<Info size={11} className="text-slate-400" />} label="ID" value={player.id} />
+        <div className="ml-6 mb-2 rounded-md border border-surface-border bg-surface-2/50 p-3 text-[11px] text-slate-300">
+          {/* Datos de solo lectura */}
+          <div className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3">
+            <Datum icon={<Backpack size={11} className="text-slate-400" />} label="Objetos" value={String(player.objetos ?? 0)} />
+            <Datum
+              icon={<MapPin size={11} className="text-green-400" />}
+              label="Posición"
+              value={pos ? `${pos[0].toFixed(5)}, ${pos[1].toFixed(5)}` : '—'}
+            />
+            <Datum icon={<Info size={11} className="text-slate-400" />} label="ID" value={player.id} />
+            {player.telefono && <Datum icon={<Info size={11} className="text-slate-400" />} label="Teléfono" value={player.telefono} />}
+          </div>
+
+          {player.esAdmin ? (
+            <p className="text-[11px] text-slate-500">La cuenta de administrador no se edita ni se elimina desde aquí.</p>
+          ) : (
+            <>
+              {/* Editar stats */}
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                <NumField label="Dinero" icon={<Coins size={11} className="text-amber-400" />} value={edit.dinero} onChange={(v) => setEdit((e) => ({ ...e, dinero: onlyInt(v) }))} />
+                <NumField label="Nivel" icon={<Star size={11} className="text-slate-400" />} value={edit.nivel} onChange={(v) => setEdit((e) => ({ ...e, nivel: onlyInt(v) }))} />
+                <NumField label="XP" icon={<Star size={11} className="text-sky-400" />} value={edit.experiencia} onChange={(v) => setEdit((e) => ({ ...e, experiencia: onlyInt(v) }))} />
+                <NumField label="Vida" icon={<Heart size={11} className="text-red-400" />} value={edit.vida} onChange={(v) => setEdit((e) => ({ ...e, vida: onlyInt(v) }))} />
+                <NumField label="Hambre" icon={<Utensils size={11} className="text-orange-400" />} value={edit.hambre} onChange={(v) => setEdit((e) => ({ ...e, hambre: onlyInt(v) }))} />
+              </div>
+              <button
+                type="button"
+                onClick={() => void saveStats()}
+                disabled={busy}
+                className="mt-2 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:brightness-110 disabled:opacity-50"
+              >
+                Guardar cambios
+              </button>
+
+              {/* Contraseña + acciones */}
+              <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-surface-border pt-3">
+                <label className="text-[11px] text-slate-400">
+                  Nueva contraseña
+                  <input
+                    type="text"
+                    value={newPass}
+                    onChange={(e) => setNewPass(e.target.value)}
+                    placeholder="mín. 4"
+                    className="mt-1 block w-40 rounded-md border border-surface-border bg-surface-1 px-2 py-1 text-xs text-slate-100 placeholder:text-slate-600 focus:border-accent focus:outline-none"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => void changePass()}
+                  disabled={busy}
+                  className="rounded-md border border-surface-border px-3 py-1.5 text-xs text-slate-200 hover:bg-surface-2 disabled:opacity-50"
+                >
+                  Cambiar contraseña
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void toggleBan()}
+                  disabled={busy}
+                  className="rounded-md border border-amber-800/60 px-3 py-1.5 text-xs text-amber-300 hover:bg-amber-900/20 disabled:opacity-50"
+                >
+                  {isBanned(player) ? 'Quitar ban' : 'Banear'}
+                </button>
+                {confirmDelete ? (
+                  <span className="flex items-center gap-2">
+                    <button type="button" onClick={() => void remove()} disabled={busy} className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:brightness-110">
+                      Confirmar
+                    </button>
+                    <button type="button" onClick={() => setConfirmDelete(false)} className="rounded-md border border-surface-border px-3 py-1.5 text-xs text-slate-200 hover:bg-surface-2">
+                      Cancelar
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    disabled={busy}
+                    className="flex items-center gap-1.5 rounded-md border border-red-800/60 px-3 py-1.5 text-xs text-red-300 hover:bg-red-900/20 disabled:opacity-50"
+                  >
+                    <Trash2 size={13} /> Eliminar
+                  </button>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
     </li>
+  )
+}
+
+function isBanned(player: GamePlayer): boolean {
+  return (player as GamePlayer & { baneado?: boolean }).baneado === true
+}
+
+function NumField({
+  label,
+  icon,
+  value,
+  onChange
+}: {
+  label: string
+  icon: JSX.Element
+  value: string
+  onChange(v: string): void
+}): JSX.Element {
+  return (
+    <label className="text-[11px] text-slate-400">
+      <span className="flex items-center gap-1">{icon} {label}</span>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full rounded-md border border-surface-border bg-surface-1 px-2 py-1 text-xs text-slate-100 focus:border-accent focus:outline-none"
+      />
+    </label>
   )
 }
 

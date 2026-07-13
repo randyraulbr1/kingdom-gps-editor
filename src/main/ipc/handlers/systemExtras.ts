@@ -15,6 +15,7 @@ import type {
   ServerAuthStatus,
   GamePlayer,
   CreatePlayerInput,
+  PlayerEditInput,
   PlayerAdminResult
 } from '@shared-types/system'
 import {
@@ -100,6 +101,46 @@ export function registerSystemExtraHandlers(): void {
       return { ok: true, message: 'Cuentas limpiadas (se conservó la de admin y se respaldó antes).' }
     } catch (error) {
       return { ok: false, message: friendly(error, 'No se pudieron limpiar las cuentas.') }
+    }
+  })
+
+  /** Edita los datos de partida de un jugador (dinero, nivel, xp, vida, hambre, posición). */
+  ipcMain.handle('players:edit', async (_event, input: PlayerEditInput): Promise<PlayerAdminResult> => {
+    try {
+      await apiFetch('/api/player/admin-jugador-editar', { method: 'POST', body: input })
+      return { ok: true, message: 'Jugador actualizado.' }
+    } catch (error) {
+      return { ok: false, message: friendly(error, 'No se pudo actualizar el jugador.') }
+    }
+  })
+
+  /** Cambia la contraseña de un jugador. */
+  ipcMain.handle('players:setPassword', async (_event, id: string, password: string): Promise<PlayerAdminResult> => {
+    try {
+      await apiFetch('/api/player/admin-jugador-password', { method: 'POST', body: { id, password } })
+      return { ok: true, message: 'Contraseña cambiada.' }
+    } catch (error) {
+      return { ok: false, message: friendly(error, 'No se pudo cambiar la contraseña.') }
+    }
+  })
+
+  /** Banea o desbanea un jugador. */
+  ipcMain.handle('players:ban', async (_event, id: string, ban: boolean): Promise<PlayerAdminResult> => {
+    try {
+      await apiFetch('/api/player/admin-jugador-ban', { method: 'POST', body: { id, ban } })
+      return { ok: true, message: ban ? 'Jugador baneado.' : 'Jugador desbaneado.' }
+    } catch (error) {
+      return { ok: false, message: friendly(error, 'No se pudo cambiar el ban.') }
+    }
+  })
+
+  /** Elimina un jugador (cuenta + partida; queda en papelera recuperable). */
+  ipcMain.handle('players:delete', async (_event, id: string): Promise<PlayerAdminResult> => {
+    try {
+      await apiFetch('/api/player/admin-jugador-eliminar', { method: 'POST', body: { id } })
+      return { ok: true, message: 'Jugador eliminado.' }
+    } catch (error) {
+      return { ok: false, message: friendly(error, 'No se pudo eliminar el jugador.') }
     }
   })
 }
