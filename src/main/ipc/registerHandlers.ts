@@ -3,6 +3,7 @@ import { registerIconHandlers } from './handlers/icons'
 import { registerItemHandlers } from './handlers/items'
 import { registerWeaponHandlers } from './handlers/weapons'
 import { registerArmorHandlers } from './handlers/armor'
+import { registerMonsterHandlers } from './handlers/monsters'
 import { registerExportHandlers } from './handlers/exportHandlers'
 import { registerCommandHistoryHandlers } from './handlers/commandHistory'
 import { registerDialogHandlers } from './handlers/dialogHandlers'
@@ -20,6 +21,7 @@ export function registerAllHandlers(): void {
   registerItemHandlers()
   registerWeaponHandlers()
   registerArmorHandlers()
+  registerMonsterHandlers()
   registerExportHandlers()
   registerCommandHistoryHandlers()
   registerDialogHandlers()

@@ -5,6 +5,7 @@ import type { ChangeLogEntry } from './commands'
 import type { Item, ItemInput, ItemQuery } from './item'
 import type { Weapon, WeaponInput, WeaponQuery } from './weapon'
 import type { Armor, ArmorInput, ArmorQuery } from './armor'
+import type { Monster, MonsterInput, MonsterQuery } from './monster'
 import type { UpdateCheckResult } from './updates'
 import type {
   WorldEntity,
@@ -82,11 +83,22 @@ export interface KingdomGpsApi {
     bulkDelete(ids: number[]): Promise<void>
     listCategories(): Promise<string[]>
   }
+  monsters: {
+    query(params: MonsterQuery): Promise<{ items: Monster[]; total: number }>
+    get(id: number): Promise<Monster | undefined>
+    create(data: MonsterInput): Promise<Monster>
+    update(id: number, patch: Partial<MonsterInput>): Promise<Monster>
+    delete(id: number): Promise<void>
+    bulkUpdate(ids: number[], patch: Partial<MonsterInput>): Promise<Monster[]>
+    bulkDelete(ids: number[]): Promise<void>
+    listCategories(): Promise<string[]>
+  }
   export: {
     icons(): Promise<ExportRunResult>
     items(): Promise<ExportRunResult>
     weapons(): Promise<ExportRunResult>
     armor(): Promise<ExportRunResult>
+    monsters(): Promise<ExportRunResult>
     world(): Promise<ExportRunResult>
   }
   commandHistory: {

@@ -56,11 +56,22 @@ const api: KingdomGpsApi = {
     bulkDelete: (ids) => ipcRenderer.invoke('armor:bulkDelete', ids),
     listCategories: () => ipcRenderer.invoke('armor:listCategories')
   },
+  monsters: {
+    query: (params) => ipcRenderer.invoke('monsters:query', params),
+    get: (id) => ipcRenderer.invoke('monsters:get', id),
+    create: (data) => ipcRenderer.invoke('monsters:create', data),
+    update: (id, patch) => ipcRenderer.invoke('monsters:update', id, patch),
+    delete: (id) => ipcRenderer.invoke('monsters:delete', id),
+    bulkUpdate: (ids, patch) => ipcRenderer.invoke('monsters:bulkUpdate', ids, patch),
+    bulkDelete: (ids) => ipcRenderer.invoke('monsters:bulkDelete', ids),
+    listCategories: () => ipcRenderer.invoke('monsters:listCategories')
+  },
   export: {
     icons: () => ipcRenderer.invoke('export:icons'),
     items: () => ipcRenderer.invoke('export:items'),
     weapons: () => ipcRenderer.invoke('export:weapons'),
     armor: () => ipcRenderer.invoke('export:armor'),
+    monsters: () => ipcRenderer.invoke('export:monsters'),
     world: () => ipcRenderer.invoke('export:world')
   },
   commandHistory: {

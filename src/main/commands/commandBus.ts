@@ -2,12 +2,14 @@ import type { ArmorRepository } from '../armor/armorRepository'
 import type { IconLibraryRepository } from '../icons/iconLibraryRepository'
 import type { ItemsRepository } from '../items/itemsRepository'
 import type { WeaponsRepository } from '../weapons/weaponsRepository'
+import type { MonstersRepository } from '../monsters/monstersRepository'
 import type { WorldEntityRepository } from '../worldEditor/worldEntityRepository'
 import type { ChangeLogService } from './changeLog'
 import type { ChangeLogEntry } from '@shared-types/commands'
 import type { Armor } from '@shared-types/armor'
 import type { Item } from '@shared-types/item'
 import type { Weapon } from '@shared-types/weapon'
+import type { Monster } from '@shared-types/monster'
 import type { WorldEntity, Position } from '@shared-types/world'
 
 /**
@@ -24,6 +26,7 @@ export class CommandBus {
     private itemsRepository: ItemsRepository,
     private weaponsRepository: WeaponsRepository,
     private armorRepository: ArmorRepository,
+    private monstersRepository: MonstersRepository,
     private worldEntityRepository: WorldEntityRepository
   ) {}
 
@@ -93,6 +96,22 @@ export class CommandBus {
 
   async recordArmorBulkUpdate(before: Array<Armor | undefined>, after: Armor[]): Promise<void> {
     await this.changeLog.record({ moduleId: 'armor', entityId: null, action: 'bulkUpdate', before, after })
+  }
+
+  async recordMonsterCreate(monster: Monster): Promise<void> {
+    await this.changeLog.record({ moduleId: 'monsters', entityId: monster.id, action: 'create', before: null, after: monster })
+  }
+
+  async recordMonsterUpdate(before: Monster, after: Monster): Promise<void> {
+    await this.changeLog.record({ moduleId: 'monsters', entityId: after.id, action: 'update', before, after })
+  }
+
+  async recordMonsterDelete(monster: Monster): Promise<void> {
+    await this.changeLog.record({ moduleId: 'monsters', entityId: monster.id, action: 'delete', before: monster, after: null })
+  }
+
+  async recordMonsterBulkUpdate(before: Array<Monster | undefined>, after: Monster[]): Promise<void> {
+    await this.changeLog.record({ moduleId: 'monsters', entityId: null, action: 'bulkUpdate', before, after })
   }
 
   async recordWorldEntityCreate(entity: WorldEntity): Promise<void> {
@@ -229,6 +248,30 @@ export class CommandBus {
     }
   }
 
+  private async applyMonsterState(entry: ChangeLogEntry, useAfter: boolean): Promise<void> {
+    if (entry.action === 'create') {
+      if (useAfter) {
+        await this.monstersRepository.restoreWithId(entry.after as Monster)
+      } else if (entry.entityId !== null) {
+        await this.monstersRepository.delete(Number(entry.entityId))
+      }
+    } else if (entry.action === 'delete') {
+      if (useAfter) {
+        if (entry.entityId !== null) await this.monstersRepository.delete(Number(entry.entityId))
+      } else {
+        await this.monstersRepository.restoreWithId(entry.before as Monster)
+      }
+    } else if (entry.action === 'update') {
+      const monster = (useAfter ? entry.after : entry.before) as Monster | null
+      if (monster) await this.monstersRepository.update(monster.id, monster)
+    } else if (entry.action === 'bulkUpdate') {
+      const monsters = (useAfter ? entry.after : entry.before) as Array<Monster | null | undefined>
+      for (const monster of monsters) {
+        if (monster) await this.monstersRepository.update(monster.id, monster)
+      }
+    }
+  }
+
   private async applyWorldEntityState(entry: ChangeLogEntry, useAfter: boolean): Promise<void> {
     if (entry.entityId === null) return
     const worldId = String(entry.entityId)
@@ -266,6 +309,8 @@ export class CommandBus {
       await this.applyWeaponState(entry, useAfter)
     } else if (entry.moduleId === 'armor') {
       await this.applyArmorState(entry, useAfter)
+    } else if (entry.moduleId === 'monsters') {
+      await this.applyMonsterState(entry, useAfter)
     } else if (entry.moduleId === 'worldEditor') {
       await this.applyWorldEntityState(entry, useAfter)
     }

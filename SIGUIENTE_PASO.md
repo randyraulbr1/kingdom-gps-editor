@@ -27,6 +27,7 @@ No marcar una característica como terminada hasta que exista código, pruebas y
 - Módulo Objetos (sobre el framework de contenido genérico).
 - Módulo Armas (undo/redo + export).
 - Módulo Armaduras (migración `007_armor`, undo/redo + export).
+- Módulo Monstruos / bestiario (migración `009_monsters`, undo/redo + export).
 - Editor de Mundo con Leaflet, entidades, zonas, importación OpenStreetMap y exportación de mundo.
 - **Menú contextual estilo PC** del Editor de Mundo (copiar/cortar/pegar/duplicar/Propiedades + atajos).
 - **Pin Tienda funcional** (ficha con catálogo local + simulador de compra).

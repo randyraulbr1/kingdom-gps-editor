@@ -144,6 +144,27 @@ export interface WorldZonesTable {
   deleted_at: string | null
 }
 
+export interface MonstersTable {
+  id: Generated<number>
+  name: string
+  description: string
+  category: string
+  rarity: string
+  icon_id: number | null
+  level: number
+  hp: number
+  damage: number
+  defense: number
+  speed: number
+  xp_reward: number
+  coin_reward: number
+  scripts: string
+  flags: string
+  checks: string
+  created_at: string
+  updated_at: string
+}
+
 export interface EnemyRoutesTable {
   route_id: string
   name: string
@@ -167,4 +188,5 @@ export interface Database {
   world_entities: WorldEntitiesTable
   world_zones: WorldZonesTable
   enemy_routes: EnemyRoutesTable
+  monsters: MonstersTable
 }

@@ -4,9 +4,10 @@ import { IconLibraryRepository } from '../../icons/iconLibraryRepository'
 import { ItemsRepository } from '../../items/itemsRepository'
 import { WeaponsRepository } from '../../weapons/weaponsRepository'
 import { ArmorRepository } from '../../armor/armorRepository'
+import { MonstersRepository } from '../../monsters/monstersRepository'
 import { WorldEntityRepository } from '../../worldEditor/worldEntityRepository'
 import { WorldZoneRepository } from '../../worldEditor/worldZoneRepository'
-import { exportIconManifest, exportItems, exportWeapons, exportArmor, exportWorld } from '../../export/exportService'
+import { exportIconManifest, exportItems, exportWeapons, exportArmor, exportMonsters, exportWorld } from '../../export/exportService'
 
 export function registerExportHandlers(): void {
   ipcMain.handle('export:icons', () => {
@@ -35,6 +36,13 @@ export function registerExportHandlers(): void {
     const info = projectManager.getCurrentInfo()
     if (!info) throw new Error('No hay un proyecto abierto')
     return exportArmor(new ArmorRepository(db), info.path)
+  })
+
+  ipcMain.handle('export:monsters', () => {
+    const db = projectManager.getDb()
+    const info = projectManager.getCurrentInfo()
+    if (!info) throw new Error('No hay un proyecto abierto')
+    return exportMonsters(new MonstersRepository(db), info.path)
   })
 
   ipcMain.handle('export:world', () => {
