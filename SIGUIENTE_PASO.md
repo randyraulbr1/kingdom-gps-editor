@@ -61,6 +61,12 @@ No marcar una característica como terminada hasta que exista código, pruebas y
   (electron-updater + GitHub Releases); descarga e instala la versión nueva. Solo en la app
   instalada. CI compila el `.exe` en Windows (workflow `build-windows.yml`) y, al publicar un
   tag `vX.Y.Z`, crea una Release con instalador + `latest.yml` para el auto-update.
+- **Módulo Probar Juego** (Herramientas): "Juego en vivo" carga la web del juego dentro del
+  editor (`<webview>`) con recargar, **limpiar caché y datos**, DevTools y tamaños **PC /
+  Teléfono (Samsung) / Tablet**; "Probar códigos" es un playground (inventario, barras de
+  vida/hambre/XP, menú de amigos) con edición HTML/CSS/JS y vista previa en vivo. Lógica con tests.
+- **Barra lateral reorganizada**: "Contenido" es una carpeta plegable; Herramientas incluye
+  Editor del Mundo, Probar Juego, Sprite y Biblioteca de Iconos; Configuración queda sola al fondo.
 - Script `actualizar.bat` (dev) y `abrir.bat` para abrir el editor en Windows.
 
 ## Trabajo completado en esta sesión

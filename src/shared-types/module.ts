@@ -30,6 +30,7 @@ export type ModuleId =
   | 'icon-library'
   | 'world-editor'
   | 'sprite-tester'
+  | 'game-view'
 
 export interface ModuleShortcut {
   /** e.g. "Ctrl+N" */
@@ -69,10 +70,15 @@ export const CONTENT_MODULE_ORDER: ModuleId[] = [
   'professions',
   'animals',
   'pets',
-  'events',
-  'settings'
+  'events'
 ]
 
-export const TOOLS_MODULE_ORDER: ModuleId[] = ['tools', 'world-editor', 'sprite-tester']
+export const TOOLS_MODULE_ORDER: ModuleId[] = [
+  'world-editor',
+  'game-view',
+  'sprite-tester',
+  'icon-library',
+  'tools'
+]
 
-export const SYSTEM_MODULE_ORDER: ModuleId[] = ['icon-library']
+export const SYSTEM_MODULE_ORDER: ModuleId[] = ['settings']

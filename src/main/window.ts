@@ -12,7 +12,11 @@ export function createMainWindow(): BrowserWindow {
     backgroundColor: '#1e1f22',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      // Habilita <webview> para la "Vista del Juego" (doc 03): carga la web del
+      // juego dentro del editor para probarla, con controles de recarga, limpieza
+      // de caché y tamaños de dispositivo.
+      webviewTag: true
     }
   })
 
