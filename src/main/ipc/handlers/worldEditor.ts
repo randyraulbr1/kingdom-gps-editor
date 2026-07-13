@@ -22,9 +22,25 @@ import type {
   ConflictResolution
 } from '@shared-types/world'
 import type { PublishEntityResult } from '@shared-types/system'
+import { WorldEntityType } from '@shared-types/world'
 
 function getRepository(): WorldEntityRepository {
   return new WorldEntityRepository(projectManager.getDb())
+}
+
+/**
+ * Mapa de tipos del editor -> tipos que acepta el servidor del juego
+ * (`/api/player/world/upsert`, campos: item|enemy|treasure|shop|mission|chest).
+ * Los tipos sin equivalente en el juego (NPC, evento, marcador) devuelven null
+ * y se informan claramente en vez de mandar un `type` que el servidor rechaza.
+ */
+const GAME_TYPE_BY_ENTITY: Partial<Record<WorldEntityType, string>> = {
+  [WorldEntityType.Object]: 'item',
+  [WorldEntityType.Enemy]: 'enemy',
+  [WorldEntityType.Chest]: 'chest',
+  [WorldEntityType.Shop]: 'shop',
+  [WorldEntityType.Quest]: 'mission',
+  [WorldEntityType.Resource]: 'treasure'
 }
 
 export function registerWorldEditorHandlers(): void {
@@ -107,28 +123,45 @@ export function registerWorldEditorHandlers(): void {
       return { ok: false, syncStatus: updated.syncStatus, message: 'Configura el servidor y el token en Configuración ▸ Servidor.' }
     }
 
+    // El servidor del juego solo acepta ciertos tipos; si no hay equivalente lo decimos claro.
+    const gameType = GAME_TYPE_BY_ENTITY[entity.entityType]
+    if (!gameType) {
+      const detail = `el juego no acepta pines de tipo "${entity.entityType}" (solo objeto, enemigo, cofre, tienda, misión y recurso)`
+      const updated = await repository.setSyncStatus(worldId, WorldSyncStatus.Failed, detail)
+      return { ok: false, syncStatus: updated.syncStatus, message: `No se pudo subir: ${detail}.` }
+    }
+
     await repository.setSyncStatus(worldId, WorldSyncStatus.Syncing)
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 20_000)
     try {
-      // Contrato de la doc 11/02: POST /api/v1/world/entities con Bearer token.
-      const endpoint = `${url.replace(/\/$/, '')}/api/v1/world/entities`
+      // Contrato real del juego (server/routes/playerRoutes.js -> /api/player/world/upsert):
+      // POST { id, type, x=lat, y=lng, data } con Authorization: Bearer <JWT admin>.
+      const lat = entity.position.lat
+      const lng = entity.position.lng
+      const data = { ...entity.properties, id: entity.worldId, nombre: entity.name, pos: [lat, lng] }
+      const endpoint = `${url.replace(/\/$/, '')}/api/player/world/upsert`
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(entity),
+        body: JSON.stringify({ id: entity.worldId, type: gameType, x: lat, y: lng, data }),
         signal: controller.signal
       })
-      if (!response.ok) {
-        const detail = response.status === 401 || response.status === 403 ? 'token inválido o sin permiso' : `${response.status} ${response.statusText}`
+      const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string }
+      if (!response.ok || payload.ok === false) {
+        let detail: string
+        if (response.status === 401) detail = 'sesión expirada o token inválido — vuelve a iniciar sesión en el juego'
+        else if (response.status === 403) detail = 'el token no tiene permiso de admin en el servidor'
+        else if (response.status === 429) detail = 'demasiadas subidas seguidas — espera un momento'
+        else detail = payload.error || `${response.status} ${response.statusText}`
         const updated = await repository.setSyncStatus(worldId, WorldSyncStatus.Failed, detail)
         return { ok: false, syncStatus: updated.syncStatus, message: `El servidor rechazó la subida: ${detail}` }
       }
       const updated = await repository.setSyncStatus(worldId, WorldSyncStatus.Synced, null)
-      return { ok: true, syncStatus: updated.syncStatus, message: 'Subido al mundo correctamente.' }
+      return { ok: true, syncStatus: updated.syncStatus, message: 'Subido al mundo correctamente (ya sale en el juego).' }
     } catch (error) {
       const message = error instanceof Error && error.name === 'AbortError' ? 'tiempo de espera agotado' : error instanceof Error ? error.message : String(error)
       const updated = await repository.setSyncStatus(worldId, WorldSyncStatus.Failed, message)

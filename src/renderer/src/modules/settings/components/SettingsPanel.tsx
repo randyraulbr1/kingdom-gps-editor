@@ -183,6 +183,8 @@ function ServerSection(): JSX.Element {
           <h2 className="text-sm font-medium text-slate-100">Servidor del juego</h2>
           <p className="text-[11px] text-slate-500">
             URL y token usados por «Subir al mundo». El pin se pone verde si entra en el juego, rojo si el token falla.
+            El token es el JWT de admin del juego (inicia sesión como admin y copia su token). Envía a
+            <code className="mx-1 rounded bg-surface-2 px-1">/api/player/world/upsert</code>.
           </p>
         </div>
       </div>
