@@ -3,6 +3,12 @@ productName: KingdomGPS Editor
 directories:
   output: dist
   buildResources: build
+# Origen de las actualizaciones automáticas (electron-updater lee esto vía
+# app-update.yml). El repo es público, así que no requiere token para descargar.
+publish:
+  provider: github
+  owner: randyraulbr1
+  repo: kingdom-gps-editor
 files:
   - out/**
   - package.json

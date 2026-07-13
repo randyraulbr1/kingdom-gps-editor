@@ -56,7 +56,11 @@ No marcar una característica como terminada hasta que exista código, pruebas y
   9 acciones, vista previa animada, exportar/importar JSON, y probador con WASD (correr,
   agachado, deslizar, disparar, recargar), colisiones, cámara y HUD. Incluye sprite sheet de
   ejemplo (`sprite-tester/example/`). Lógica pura con 22 tests.
-- Script `actualizar.bat` para actualizar y verificar la copia local en Windows con un doble clic.
+- **Auto-actualización**: Configuración ▸ Actualizaciones con botón "Buscar actualizaciones"
+  (electron-updater + GitHub Releases); descarga e instala la versión nueva. Solo en la app
+  instalada. CI compila el `.exe` en Windows (workflow `build-windows.yml`) y, al publicar un
+  tag `vX.Y.Z`, crea una Release con instalador + `latest.yml` para el auto-update.
+- Script `actualizar.bat` (dev) y `abrir.bat` para abrir el editor en Windows.
 
 ## Trabajo completado en esta sesión
 

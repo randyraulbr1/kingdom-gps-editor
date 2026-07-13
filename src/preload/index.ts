@@ -101,6 +101,11 @@ const api: KingdomGpsApi = {
   osm: {
     queryPlaces: (request) => ipcRenderer.invoke('osm:queryPlaces', request)
   },
+  updates: {
+    getVersion: () => ipcRenderer.invoke('updates:getVersion'),
+    check: () => ipcRenderer.invoke('updates:check'),
+    downloadAndInstall: () => ipcRenderer.invoke('updates:downloadAndInstall')
+  },
   dialog: {
     pickFolder: () => ipcRenderer.invoke('dialog:pickFolder')
   },

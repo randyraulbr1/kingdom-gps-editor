@@ -11,6 +11,7 @@ import { registerWorldEditorHandlers } from './handlers/worldEditor'
 import { registerWorldZoneHandlers } from './handlers/worldZones'
 import { registerEnemyRouteHandlers } from './handlers/enemyRoutes'
 import { registerOsmHandlers } from './handlers/osm'
+import { registerUpdateHandlers } from './handlers/updates'
 
 /** Single call site from main/index.ts. Each handler module owns one slice of the IPC surface declared in shared-types/api.ts. */
 export function registerAllHandlers(): void {
@@ -27,4 +28,5 @@ export function registerAllHandlers(): void {
   registerWorldZoneHandlers()
   registerEnemyRouteHandlers()
   registerOsmHandlers()
+  registerUpdateHandlers()
 }

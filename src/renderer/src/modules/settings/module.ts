@@ -1,5 +1,5 @@
 import { defineModule } from '../defineModule'
-import { makePlaceholderPanel } from '@renderer/shared/components/ModulePlaceholder'
+import { SettingsPanel } from './components/SettingsPanel'
 
 export const settingsModule = defineModule({
   id: 'settings',
@@ -7,8 +7,5 @@ export const settingsModule = defineModule({
   icon: 'Settings',
   group: 'system',
   capabilities: ['edit'],
-  panel: makePlaceholderPanel(
-    'Configuración',
-    'Preferencias del editor y del proyecto actual. Se implementará junto con el resto de módulos de sistema.'
-  )
+  panel: SettingsPanel
 })

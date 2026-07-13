@@ -5,6 +5,7 @@ import type { ChangeLogEntry } from './commands'
 import type { Item, ItemInput, ItemQuery } from './item'
 import type { Weapon, WeaponInput, WeaponQuery } from './weapon'
 import type { Armor, ArmorInput, ArmorQuery } from './armor'
+import type { UpdateCheckResult } from './updates'
 import type {
   WorldEntity,
   CreateWorldEntityRequest,
@@ -150,6 +151,14 @@ export interface KingdomGpsApi {
   osm: {
     /** Consultar lugares reales de OpenStreetMap dentro de un polígono */
     queryPlaces(request: OsmQueryRequest): Promise<OsmQueryResult>
+  }
+  updates: {
+    /** Versión actual de la app. */
+    getVersion(): Promise<string>
+    /** Comprueba si hay una versión nueva publicada. */
+    check(): Promise<UpdateCheckResult>
+    /** Descarga la actualización y reinicia para instalarla. */
+    downloadAndInstall(): Promise<{ ok: boolean; message?: string }>
   }
   dialog: {
     pickFolder(): Promise<string | null>
