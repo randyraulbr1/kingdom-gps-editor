@@ -1,18 +1,31 @@
 /**
  * Utilidades del sistema del editor:
  *  - Captura de pantalla de la ventana (guardada con nombre único).
- *  - Configuración del servidor del juego (URL + token) para "Subir al mundo".
- *
- * La captura y la config viven en la carpeta userData del editor.
+ *  - Configuración del servidor del juego (URL + credenciales de admin) y su
+ *    estado de conexión. La autenticación es automática (ver server/gameServer).
+ *  - Administración de jugadores contra el servidor del juego.
  */
 
 import { ipcMain, app, BrowserWindow, shell } from 'electron'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import type { ServerConfig, CaptureResult } from '@shared-types/system'
+import type {
+  ServerConfig,
+  CaptureResult,
+  ServerAuthStatus,
+  GamePlayer,
+  CreatePlayerInput,
+  PlayerAdminResult
+} from '@shared-types/system'
+import {
+  readServerConfig,
+  writeServerConfig,
+  checkAuth,
+  apiFetch,
+  ServerError
+} from '../../server/gameServer'
 
 const CAPTURES_DIR = (): string => path.join(app.getPath('userData'), 'capturas')
-const SERVER_CONFIG_PATH = (): string => path.join(app.getPath('userData'), 'server.json')
 
 /** Siguiente nombre libre captura-N.png que no exista ya. */
 async function nextCaptureName(dir: string): Promise<string> {
@@ -28,6 +41,12 @@ async function nextCaptureName(dir: string): Promise<string> {
   return `captura-${i}.png`
 }
 
+/** Convierte cualquier error en un mensaje claro para la UI. */
+function friendly(error: unknown, fallback: string): string {
+  if (error instanceof ServerError) return error.message
+  return error instanceof Error ? error.message : fallback
+}
+
 export function registerSystemExtraHandlers(): void {
   ipcMain.handle('capture:window', async (): Promise<CaptureResult> => {
     const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
@@ -38,34 +57,49 @@ export function registerSystemExtraHandlers(): void {
     const name = await nextCaptureName(dir)
     const filePath = path.join(dir, name)
     await fs.writeFile(filePath, image.toPNG())
-    // Abre el explorador con el archivo seleccionado para poder enviarlo fácil.
     shell.showItemInFolder(filePath)
     return { path: filePath, name }
   })
 
-  ipcMain.handle('server:get', async (): Promise<ServerConfig> => {
+  // ===== Configuración del servidor (URL + credenciales de admin) =====
+
+  ipcMain.handle('server:get', (): Promise<ServerConfig> => readServerConfig())
+
+  ipcMain.handle('server:set', async (_event, config: ServerConfig): Promise<void> => {
+    await writeServerConfig(config)
+  })
+
+  ipcMain.handle('server:checkAuth', async (): Promise<ServerAuthStatus> => checkAuth())
+
+  // ===== Administración de jugadores (panel adm en el editor) =====
+
+  /** Lista de jugadores del mundo (desde el snapshot del servidor). */
+  ipcMain.handle('players:list', async (): Promise<GamePlayer[]> => {
+    const data = await apiFetch<{ ok: boolean; jugadores?: GamePlayer[] }>('/api/player/admin-jugadores')
+    return Array.isArray(data.jugadores) ? data.jugadores : []
+  })
+
+  /** Crea una cuenta de jugador de prueba (registro público, no requiere admin). */
+  ipcMain.handle('players:create', async (_event, input: CreatePlayerInput): Promise<PlayerAdminResult> => {
     try {
-      const raw = await fs.readFile(SERVER_CONFIG_PATH(), 'utf-8')
-      const parsed = JSON.parse(raw) as Partial<ServerConfig>
-      return { url: typeof parsed.url === 'string' ? parsed.url : '', token: typeof parsed.token === 'string' ? parsed.token : '' }
-    } catch {
-      return { url: '', token: '' }
+      await apiFetch('/api/register', {
+        method: 'POST',
+        auth: false,
+        body: { username: input.usuario, password: input.password, telefono: input.telefono ?? '' }
+      })
+      return { ok: true, message: `Jugador "${input.usuario}" creado.` }
+    } catch (error) {
+      return { ok: false, message: friendly(error, 'No se pudo crear el jugador.') }
     }
   })
 
-  ipcMain.handle('server:set', async (_event, config: ServerConfig): Promise<void> => {
-    const clean: ServerConfig = { url: (config.url ?? '').trim(), token: (config.token ?? '').trim() }
-    await fs.writeFile(SERVER_CONFIG_PATH(), JSON.stringify(clean, null, 2), 'utf-8')
+  /** Limpia todas las cuentas del juego dejando solo la de admin (el servidor respalda antes). */
+  ipcMain.handle('players:clearAll', async (): Promise<PlayerAdminResult> => {
+    try {
+      await apiFetch('/api/player/limpiar-cuentas', { method: 'POST', body: {} })
+      return { ok: true, message: 'Cuentas limpiadas (se conservó la de admin y se respaldó antes).' }
+    } catch (error) {
+      return { ok: false, message: friendly(error, 'No se pudieron limpiar las cuentas.') }
+    }
   })
-}
-
-/** Lee la config de servidor (usado por el handler de "Subir al mundo"). */
-export async function readServerConfig(): Promise<ServerConfig> {
-  try {
-    const raw = await fs.readFile(SERVER_CONFIG_PATH(), 'utf-8')
-    const parsed = JSON.parse(raw) as Partial<ServerConfig>
-    return { url: typeof parsed.url === 'string' ? parsed.url : '', token: typeof parsed.token === 'string' ? parsed.token : '' }
-  } catch {
-    return { url: '', token: '' }
-  }
 }

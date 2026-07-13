@@ -123,7 +123,13 @@ const api: KingdomGpsApi = {
   },
   server: {
     get: () => ipcRenderer.invoke('server:get'),
-    set: (config) => ipcRenderer.invoke('server:set', config)
+    set: (config) => ipcRenderer.invoke('server:set', config),
+    checkAuth: () => ipcRenderer.invoke('server:checkAuth')
+  },
+  players: {
+    list: () => ipcRenderer.invoke('players:list'),
+    create: (input) => ipcRenderer.invoke('players:create', input),
+    clearAll: () => ipcRenderer.invoke('players:clearAll')
   },
   dialog: {
     pickFolder: () => ipcRenderer.invoke('dialog:pickFolder')

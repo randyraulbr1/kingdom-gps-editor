@@ -7,7 +7,15 @@ import type { Weapon, WeaponInput, WeaponQuery } from './weapon'
 import type { Armor, ArmorInput, ArmorQuery } from './armor'
 import type { Monster, MonsterInput, MonsterQuery } from './monster'
 import type { UpdateCheckResult } from './updates'
-import type { ServerConfig, CaptureResult, PublishEntityResult } from './system'
+import type {
+  ServerConfig,
+  CaptureResult,
+  PublishEntityResult,
+  ServerAuthStatus,
+  GamePlayer,
+  CreatePlayerInput,
+  PlayerAdminResult
+} from './system'
 import type {
   WorldEntity,
   CreateWorldEntityRequest,
@@ -180,9 +188,19 @@ export interface KingdomGpsApi {
     window(): Promise<CaptureResult>
   }
   server: {
-    /** Config del servidor del juego (URL + token). */
+    /** Config del servidor del juego (URL + credenciales de admin). */
     get(): Promise<ServerConfig>
     set(config: ServerConfig): Promise<void>
+    /** Prueba las credenciales iniciando sesión (auth automática). */
+    checkAuth(): Promise<ServerAuthStatus>
+  }
+  players: {
+    /** Lista de jugadores del mundo. */
+    list(): Promise<GamePlayer[]>
+    /** Crea una cuenta de jugador de prueba. */
+    create(input: CreatePlayerInput): Promise<PlayerAdminResult>
+    /** Limpia todas las cuentas dejando solo la de admin (respaldada antes). */
+    clearAll(): Promise<PlayerAdminResult>
   }
   dialog: {
     pickFolder(): Promise<string | null>

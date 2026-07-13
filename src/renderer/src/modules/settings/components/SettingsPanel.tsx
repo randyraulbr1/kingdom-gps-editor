@@ -149,21 +149,25 @@ function ScreenshotSection(): JSX.Element {
 }
 
 /**
- * Servidor del juego: URL + token que usa "Subir al mundo" (clic derecho en un
- * pin) para publicar entidades en el juego real. Si el token es inválido, el
- * pin se marca en rojo.
+ * Servidor del juego: URL + credenciales de admin. La autenticación es
+ * automática: se guardan usuario y contraseña UNA vez; el editor inicia sesión
+ * solo y reutiliza el token internamente. El usuario nunca pega un token.
  */
 function ServerSection(): JSX.Element {
   const server = typeof window !== 'undefined' ? window.api?.server : undefined
-  const [config, setConfig] = useState<ServerConfig>({ url: '', token: '' })
+  const [config, setConfig] = useState<ServerConfig>({ url: '', adminUser: '', adminPass: '' })
   const [saved, setSaved] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [auth, setAuth] = useState<{ ok: boolean; message: string } | null>(null)
 
   useEffect(() => {
     if (!server) return
     server
       .get()
-      .then((value) => setConfig({ url: value.url ?? '', token: value.token ?? '' }))
+      .then((value) =>
+        setConfig({ url: value.url ?? '', adminUser: value.adminUser ?? '', adminPass: value.adminPass ?? '' })
+      )
       .catch(() => undefined)
       .finally(() => setLoaded(true))
   }, [server])
@@ -172,8 +176,43 @@ function ServerSection(): JSX.Element {
     if (!server) return
     await server.set(config)
     setSaved(true)
+    setAuth(null)
     window.setTimeout(() => setSaved(false), 2000)
   }
+
+  const test = async (): Promise<void> => {
+    if (!server) return
+    await server.set(config)
+    setTesting(true)
+    setAuth(null)
+    try {
+      const result = await server.checkAuth()
+      setAuth({ ok: result.ok, message: result.message })
+    } catch (error) {
+      setAuth({ ok: false, message: error instanceof Error ? error.message : 'No se pudo conectar.' })
+    } finally {
+      setTesting(false)
+    }
+  }
+
+  const field = (
+    label: string,
+    key: keyof ServerConfig,
+    type: string,
+    placeholder: string
+  ): JSX.Element => (
+    <label className="mb-2 block text-xs text-slate-400">
+      {label}
+      <input
+        type={type}
+        value={config[key]}
+        onChange={(e) => setConfig((c) => ({ ...c, [key]: e.target.value }))}
+        placeholder={placeholder}
+        disabled={!server || !loaded}
+        className="mt-1 w-full rounded-md border border-surface-border bg-surface-2 px-2.5 py-1.5 text-xs text-slate-100 placeholder:text-slate-600 focus:border-accent focus:outline-none disabled:opacity-50"
+      />
+    </label>
+  )
 
   return (
     <section className="mt-4 rounded-lg border border-surface-border bg-surface-1 p-4">
@@ -182,49 +221,52 @@ function ServerSection(): JSX.Element {
         <div>
           <h2 className="text-sm font-medium text-slate-100">Servidor del juego</h2>
           <p className="text-[11px] text-slate-500">
-            URL y token usados por «Subir al mundo». El pin se pone verde si entra en el juego, rojo si el token falla.
-            El token es el JWT de admin del juego (inicia sesión como admin y copia su token). Envía a
-            <code className="mx-1 rounded bg-surface-2 px-1">/api/player/world/upsert</code>.
+            Guarda la URL y el usuario/contraseña de admin una sola vez. El editor inicia sesión solo y
+            mantiene la conexión; no necesitas pegar ningún token. Se usa para «Subir al mundo» y para
+            administrar jugadores.
           </p>
         </div>
       </div>
 
-      <label className="mb-2 block text-xs text-slate-400">
-        URL del servidor
-        <input
-          type="text"
-          value={config.url}
-          onChange={(e) => setConfig((c) => ({ ...c, url: e.target.value }))}
-          placeholder="https://tu-servidor.com"
-          disabled={!server || !loaded}
-          className="mt-1 w-full rounded-md border border-surface-border bg-surface-2 px-2.5 py-1.5 text-xs text-slate-100 placeholder:text-slate-600 focus:border-accent focus:outline-none disabled:opacity-50"
-        />
-      </label>
+      {field('URL del servidor', 'url', 'text', 'https://mariel-online.onrender.com')}
+      {field('Usuario admin', 'adminUser', 'text', 'randy')}
+      {field('Contraseña admin', 'adminPass', 'password', '••••••••')}
 
-      <label className="mb-3 block text-xs text-slate-400">
-        Token de acceso
-        <input
-          type="password"
-          value={config.token}
-          onChange={(e) => setConfig((c) => ({ ...c, token: e.target.value }))}
-          placeholder="Bearer token…"
+      <div className="mt-1 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => void save()}
           disabled={!server || !loaded}
-          className="mt-1 w-full rounded-md border border-surface-border bg-surface-2 px-2.5 py-1.5 text-xs text-slate-100 placeholder:text-slate-600 focus:border-accent focus:outline-none disabled:opacity-50"
-        />
-      </label>
+          className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:brightness-110 disabled:opacity-50"
+        >
+          <Save size={13} /> Guardar
+        </button>
+        <button
+          type="button"
+          onClick={() => void test()}
+          disabled={!server || !loaded || testing}
+          className="flex items-center gap-1.5 rounded-md border border-surface-border px-3 py-1.5 text-xs text-slate-200 hover:bg-surface-2 disabled:opacity-50"
+        >
+          <RefreshCw size={13} className={testing ? 'animate-spin' : ''} /> Probar conexión
+        </button>
+        {saved && <span className="text-[11px] text-green-400">Guardado.</span>}
+      </div>
 
-      <button
-        type="button"
-        onClick={() => void save()}
-        disabled={!server || !loaded}
-        className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:brightness-110 disabled:opacity-50"
-      >
-        <Save size={13} /> Guardar
-      </button>
-      {saved && <span className="ml-2 text-[11px] text-green-400">Guardado.</span>}
-      {!server && (
-        <p className="mt-2 text-[11px] text-slate-500">Solo disponible en la app de escritorio.</p>
+      {auth && (
+        <div className="mt-3">
+          <Line
+            icon={
+              auth.ok ? (
+                <CheckCircle2 size={13} className="text-green-400" />
+              ) : (
+                <AlertTriangle size={13} className="text-amber-400" />
+              )
+            }
+            text={auth.message}
+          />
+        </div>
       )}
+      {!server && <p className="mt-2 text-[11px] text-slate-500">Solo disponible en la app de escritorio.</p>}
     </section>
   )
 }

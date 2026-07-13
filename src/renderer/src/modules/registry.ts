@@ -28,6 +28,7 @@ import { iconLibraryModule } from './icon-library/module'
 import { worldEditorModule } from './worldEditor/module'
 import { spriteTesterModule } from './sprite-tester/module'
 import { gameViewModule } from './game-view/module'
+import { playersAdminModule } from './players-admin/module'
 
 /**
  * The only file (besides the mirror in src/main/modules/registry.ts) that
@@ -62,7 +63,8 @@ const MODULES: RendererModuleDefinition[] = [
   iconLibraryModule,
   worldEditorModule,
   spriteTesterModule,
-  gameViewModule
+  gameViewModule,
+  playersAdminModule
 ]
 
 const MODULE_MAP = new Map<ModuleId, RendererModuleDefinition>(MODULES.map((m) => [m.id, m]))

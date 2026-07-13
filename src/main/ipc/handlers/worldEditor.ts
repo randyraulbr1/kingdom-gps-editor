@@ -10,7 +10,8 @@ import { ipcMain } from 'electron'
 import { projectManager } from '../../projects/ProjectManager'
 import { WorldEntityRepository } from '../../worldEditor/worldEntityRepository'
 import { createCommandBus } from '../../commands/createCommandBus'
-import { readServerConfig } from './systemExtras'
+import { apiFetch, ServerError } from '../../server/gameServer'
+import { buildEntityData } from '../../server/worldPayload'
 import { WorldSyncStatus } from '@shared-types/world'
 import type {
   CreateWorldEntityRequest,
@@ -117,12 +118,6 @@ export function registerWorldEditorHandlers(): void {
     const entity = await repository.get(worldId)
     if (!entity) throw new Error(`Entidad del mundo no encontrada: ${worldId}`)
 
-    const { url, token } = await readServerConfig()
-    if (!url || !token) {
-      const updated = await repository.setSyncStatus(worldId, WorldSyncStatus.Failed, 'Falta configurar el servidor o el token en Configuración.')
-      return { ok: false, syncStatus: updated.syncStatus, message: 'Configura el servidor y el token en Configuración ▸ Servidor.' }
-    }
-
     // El servidor del juego solo acepta ciertos tipos; si no hay equivalente lo decimos claro.
     const gameType = GAME_TYPE_BY_ENTITY[entity.entityType]
     if (!gameType) {
@@ -132,42 +127,23 @@ export function registerWorldEditorHandlers(): void {
     }
 
     await repository.setSyncStatus(worldId, WorldSyncStatus.Syncing)
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 20_000)
     try {
       // Contrato real del juego (server/routes/playerRoutes.js -> /api/player/world/upsert):
-      // POST { id, type, x=lat, y=lng, data } con Authorization: Bearer <JWT admin>.
+      // POST { id, type, x=lat, y=lng, data }. La autenticación es automática
+      // (server/gameServer inicia sesión con las credenciales de admin guardadas).
       const lat = entity.position.lat
       const lng = entity.position.lng
-      const data = { ...entity.properties, id: entity.worldId, nombre: entity.name, pos: [lat, lng] }
-      const endpoint = `${url.replace(/\/$/, '')}/api/player/world/upsert`
-      const response = await fetch(endpoint, {
+      const data = buildEntityData(entity, gameType, lat, lng)
+      await apiFetch('/api/player/world/upsert', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ id: entity.worldId, type: gameType, x: lat, y: lng, data }),
-        signal: controller.signal
+        body: { id: entity.worldId, type: gameType, x: lat, y: lng, data }
       })
-      const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string }
-      if (!response.ok || payload.ok === false) {
-        let detail: string
-        if (response.status === 401) detail = 'sesión expirada o token inválido — vuelve a iniciar sesión en el juego'
-        else if (response.status === 403) detail = 'el token no tiene permiso de admin en el servidor'
-        else if (response.status === 429) detail = 'demasiadas subidas seguidas — espera un momento'
-        else detail = payload.error || `${response.status} ${response.statusText}`
-        const updated = await repository.setSyncStatus(worldId, WorldSyncStatus.Failed, detail)
-        return { ok: false, syncStatus: updated.syncStatus, message: `El servidor rechazó la subida: ${detail}` }
-      }
       const updated = await repository.setSyncStatus(worldId, WorldSyncStatus.Synced, null)
       return { ok: true, syncStatus: updated.syncStatus, message: 'Subido al mundo correctamente (ya sale en el juego).' }
     } catch (error) {
-      const message = error instanceof Error && error.name === 'AbortError' ? 'tiempo de espera agotado' : error instanceof Error ? error.message : String(error)
+      const message = error instanceof ServerError ? error.message : error instanceof Error ? error.message : String(error)
       const updated = await repository.setSyncStatus(worldId, WorldSyncStatus.Failed, message)
       return { ok: false, syncStatus: updated.syncStatus, message: `No se pudo subir: ${message}` }
-    } finally {
-      clearTimeout(timeout)
     }
   })
 
