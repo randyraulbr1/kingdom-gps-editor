@@ -477,6 +477,19 @@ export function WorldMapPanel(): JSX.Element {
     updateEntity(worldId, updated)
   }
 
+  // Subir un pin al mundo/servidor. El punto del marcador se pone verde si entra,
+  // rojo si el servidor lo rechaza (p. ej. token inválido) o gris si es local.
+  const handlePublishEntity = async (worldId: string): Promise<void> => {
+    flash('Subiendo al mundo…')
+    try {
+      const result = await window.api.worldEditor.publishEntity(worldId)
+      updateEntity(worldId, { syncStatus: result.syncStatus as WorldEntityUI['syncStatus'] })
+      flash(result.message ?? (result.ok ? 'Subido al mundo' : 'No se pudo subir'))
+    } catch (error) {
+      flash(`Error al subir: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
   // ===== Portapapeles interno: copiar / cortar / pegar (doc 28) =====
 
   const flash = (message: string): void => {
@@ -1094,6 +1107,7 @@ export function WorldMapPanel(): JSX.Element {
               onSelectEntity={(worldId) => selectEntity(worldId)}
               onOpenProperties={(worldId) => handleOpenProperties(worldId)}
               onOpenInteraction={(entity) => handleOpenInteraction(entity)}
+              onPublishEntity={(worldId) => void handlePublishEntity(worldId)}
               onCopyEntity={(worldId) => handleCopy(worldId)}
               onCutEntity={(worldId) => handleCut(worldId)}
               onPasteAt={(position) => void handlePasteAt(position)}

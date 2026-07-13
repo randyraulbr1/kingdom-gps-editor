@@ -17,7 +17,8 @@ import {
   Swords,
   Package,
   Pickaxe,
-  Power
+  Power,
+  UploadCloud
 } from 'lucide-react'
 
 /** Qué se hizo clic derecho: mapa vacío (posiblemente dentro de una zona) o una entidad. */
@@ -61,6 +62,7 @@ interface Props {
   onSelectEntity(worldId: string): void
   onOpenProperties(worldId: string): void
   onOpenInteraction(entity: WorldEntityUI): void
+  onPublishEntity(worldId: string): void
   onCopyEntity(worldId: string): void
   onCutEntity(worldId: string): void
   onPasteAt(position: Position): void
@@ -167,6 +169,16 @@ function renderEntityMenu(props: Props, entity: WorldEntityUI): JSX.Element {
       <div className="truncate px-3 py-1 text-[11px] font-medium text-slate-400">
         {getEntityIcon(entity.entityType)} {entity.name}
       </div>
+      <Separator />
+
+      <MenuItem
+        icon={<UploadCloud size={13} />}
+        label="Subir al mundo"
+        onClick={() => {
+          props.onPublishEntity(entity.worldId)
+          onClose()
+        }}
+      />
       <Separator />
 
       {entity.entityType === WorldEntityType.Shop && (

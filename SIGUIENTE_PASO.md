@@ -1,7 +1,7 @@
 # SIGUIENTE PASO — Punto de retorno de Kingdom GPS Editor
 
 > Documento de continuidad. Léelo primero al retomar el proyecto y mantenlo actualizado al final de cada sesión.
-> Última actualización: 2026-07-11 (sesión: integración de parche + menú contextual + pines Tienda y NPC).
+> Última actualización: 2026-07-13 (sesión: captura de pantalla + estado de sincronización de pines + "Subir al mundo" + config de servidor).
 
 ## Qué es
 
@@ -67,6 +67,16 @@ No marcar una característica como terminada hasta que exista código, pruebas y
   vida/hambre/XP, menú de amigos) con edición HTML/CSS/JS y vista previa en vivo. Lógica con tests.
 - **Barra lateral reorganizada**: "Contenido" es una carpeta plegable; Herramientas incluye
   Editor del Mundo, Probar Juego, Sprite y Biblioteca de Iconos; Configuración queda sola al fondo.
+- **Estado de sincronización de pines + "Subir al mundo"**: cada marcador del mapa lleva una
+  burbuja de estado (gris = solo local, azul = subiendo, verde = ya sale en el juego real,
+  rojo = falló la subida / token inválido). El menú contextual del pin incluye **"Subir al
+  mundo"** que hace `POST /api/v1/world/entities` con `Authorization: Bearer <token>` (timeout
+  20 s) y pinta el pin de verde/rojo según respuesta. Backend en `worldEditor:publishEntity`
+  (usa `setSyncStatus` del repositorio).
+- **Config de servidor**: Configuración ▸ **Servidor** guarda URL + token (en `userData/server.json`)
+  que usa "Subir al mundo". Si faltan o el token es inválido, el pin queda rojo con mensaje claro.
+- **Captura de pantalla**: Configuración ▸ **Captura de pantalla** guarda la ventana como
+  `captura-N.png` (nombre único, en `userData/capturas`) y abre la carpeta para enviarla.
 - Script `actualizar.bat` (dev) y `abrir.bat` para abrir el editor en Windows.
 
 ## Trabajo completado en esta sesión
@@ -197,6 +207,22 @@ Una función solo se marca como hecha cuando:
 - pasa typecheck y build;
 - fue probada visualmente en el programa de Windows;
 - se actualizó documentación y roadmap.
+
+## Pendiente que depende de datos/repos externos (no se puede cerrar solo desde este repo)
+
+- **Subida real al juego**: `worldEditor:publishEntity` ya hace el POST correcto, pero para que
+  el pin se ponga verde de verdad hace falta la **URL y el token reales del servidor del juego**
+  (Configuración ▸ Servidor) y que ese endpoint (`/api/v1/world/entities`) exista y acepte el
+  formato de la entidad. Sin eso, el pin queda **rojo** con "token inválido / no entra" — que es
+  justo el comportamiento honesto que se pidió.
+- **Quitar el botón de menú ADM dentro del juego** y mover su funcionalidad al panel adm de aquí:
+  ese botón vive en el **repo del juego** (web, p. ej. `tcodm-web`), **no** en este editor. Para
+  hacerlo hay que **añadir ese repo a la sesión** (add_repo) y editarlo allí. Desde
+  `kingdom-gps-editor` no se puede tocar el juego.
+- **Auto-update descargando de verdad**: el botón "Descargar e instalar" ya está; solo funciona
+  cuando existe una **Release publicada** con un tag `vX.Y.Z`. El push de tags está restringido a
+  las credenciales de rama, así que el usuario debe crear el tag (`git tag v0.2.0 && git push
+  origin v0.2.0`) para que el workflow publique la Release.
 
 ## Próxima tarea recomendada
 

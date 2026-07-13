@@ -7,6 +7,7 @@ import type { Weapon, WeaponInput, WeaponQuery } from './weapon'
 import type { Armor, ArmorInput, ArmorQuery } from './armor'
 import type { Monster, MonsterInput, MonsterQuery } from './monster'
 import type { UpdateCheckResult } from './updates'
+import type { ServerConfig, CaptureResult, PublishEntityResult } from './system'
 import type {
   WorldEntity,
   CreateWorldEntityRequest,
@@ -125,6 +126,8 @@ export interface KingdomGpsApi {
     toggleEntity(worldId: string): Promise<WorldEntity>
     /** Duplicar una entidad */
     duplicateEntity(worldId: string): Promise<WorldEntity>
+    /** Subir un pin al mundo/servidor (verde si entra, rojo si falla) */
+    publishEntity(worldId: string): Promise<PublishEntityResult>
     /** Obtener resumen de cambios pendientes */
     getPublishSummary(): Promise<PublishWorldSummary>
     /** Publicar cambios al servidor */
@@ -171,6 +174,15 @@ export interface KingdomGpsApi {
     check(): Promise<UpdateCheckResult>
     /** Descarga la actualización y reinicia para instalarla. */
     downloadAndInstall(): Promise<{ ok: boolean; message?: string }>
+  }
+  capture: {
+    /** Captura la ventana y la guarda con nombre único (captura-N.png). */
+    window(): Promise<CaptureResult>
+  }
+  server: {
+    /** Config del servidor del juego (URL + token). */
+    get(): Promise<ServerConfig>
+    set(config: ServerConfig): Promise<void>
   }
   dialog: {
     pickFolder(): Promise<string | null>

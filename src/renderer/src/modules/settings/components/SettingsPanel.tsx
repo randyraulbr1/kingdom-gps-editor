@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { RefreshCw, Download, CheckCircle2, AlertTriangle, Info } from 'lucide-react'
+import { RefreshCw, Download, CheckCircle2, AlertTriangle, Info, Camera, Server, Save } from 'lucide-react'
 import type { UpdateCheckResult } from '@shared-types/updates'
+import type { ServerConfig } from '@shared-types/system'
 
 type Status =
   | { kind: 'idle' }
@@ -91,7 +92,138 @@ export function SettingsPanel(): JSX.Element {
           Requiere la app instalada (.exe) y una versión publicada en GitHub Releases. En modo desarrollo se ignora.
         </p>
       </section>
+
+      <ScreenshotSection />
+      <ServerSection />
     </div>
+  )
+}
+
+/**
+ * Captura de pantalla: guarda la ventana como PNG con nombre único
+ * (captura-N.png) en la carpeta de capturas y la abre en el explorador para
+ * poder enviarla.
+ */
+function ScreenshotSection(): JSX.Element {
+  const capture = typeof window !== 'undefined' ? window.api?.capture : undefined
+  const [last, setLast] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const shoot = async (): Promise<void> => {
+    if (!capture) return
+    setBusy(true)
+    setError(null)
+    try {
+      const result = await capture.window()
+      setLast(result.name)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="mt-4 rounded-lg border border-surface-border bg-surface-1 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-medium text-slate-100">Captura de pantalla</h2>
+          <p className="text-[11px] text-slate-500">Guarda una imagen de la ventana para enviarla. El nombre es único en cada captura.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void shoot()}
+          disabled={busy || !capture}
+          className="flex items-center gap-1.5 rounded-md border border-surface-border px-3 py-1.5 text-xs text-slate-200 hover:bg-surface-2 disabled:opacity-50"
+        >
+          <Camera size={13} className={busy ? 'animate-pulse' : ''} />
+          Hacer captura
+        </button>
+      </div>
+      {last && <Line icon={<CheckCircle2 size={13} className="text-green-400" />} text={`Guardada: ${last} (se abrió la carpeta).`} />}
+      {error && <Line icon={<AlertTriangle size={13} className="text-amber-400" />} text={`No se pudo capturar: ${error}`} />}
+      {!capture && <Line icon={<Info size={13} className="text-slate-400" />} text="Solo disponible en la app de escritorio." />}
+    </section>
+  )
+}
+
+/**
+ * Servidor del juego: URL + token que usa "Subir al mundo" (clic derecho en un
+ * pin) para publicar entidades en el juego real. Si el token es inválido, el
+ * pin se marca en rojo.
+ */
+function ServerSection(): JSX.Element {
+  const server = typeof window !== 'undefined' ? window.api?.server : undefined
+  const [config, setConfig] = useState<ServerConfig>({ url: '', token: '' })
+  const [saved, setSaved] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    if (!server) return
+    server
+      .get()
+      .then((value) => setConfig({ url: value.url ?? '', token: value.token ?? '' }))
+      .catch(() => undefined)
+      .finally(() => setLoaded(true))
+  }, [server])
+
+  const save = async (): Promise<void> => {
+    if (!server) return
+    await server.set(config)
+    setSaved(true)
+    window.setTimeout(() => setSaved(false), 2000)
+  }
+
+  return (
+    <section className="mt-4 rounded-lg border border-surface-border bg-surface-1 p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <Server size={15} className="text-slate-400" />
+        <div>
+          <h2 className="text-sm font-medium text-slate-100">Servidor del juego</h2>
+          <p className="text-[11px] text-slate-500">
+            URL y token usados por «Subir al mundo». El pin se pone verde si entra en el juego, rojo si el token falla.
+          </p>
+        </div>
+      </div>
+
+      <label className="mb-2 block text-xs text-slate-400">
+        URL del servidor
+        <input
+          type="text"
+          value={config.url}
+          onChange={(e) => setConfig((c) => ({ ...c, url: e.target.value }))}
+          placeholder="https://tu-servidor.com"
+          disabled={!server || !loaded}
+          className="mt-1 w-full rounded-md border border-surface-border bg-surface-2 px-2.5 py-1.5 text-xs text-slate-100 placeholder:text-slate-600 focus:border-accent focus:outline-none disabled:opacity-50"
+        />
+      </label>
+
+      <label className="mb-3 block text-xs text-slate-400">
+        Token de acceso
+        <input
+          type="password"
+          value={config.token}
+          onChange={(e) => setConfig((c) => ({ ...c, token: e.target.value }))}
+          placeholder="Bearer token…"
+          disabled={!server || !loaded}
+          className="mt-1 w-full rounded-md border border-surface-border bg-surface-2 px-2.5 py-1.5 text-xs text-slate-100 placeholder:text-slate-600 focus:border-accent focus:outline-none disabled:opacity-50"
+        />
+      </label>
+
+      <button
+        type="button"
+        onClick={() => void save()}
+        disabled={!server || !loaded}
+        className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:brightness-110 disabled:opacity-50"
+      >
+        <Save size={13} /> Guardar
+      </button>
+      {saved && <span className="ml-2 text-[11px] text-green-400">Guardado.</span>}
+      {!server && (
+        <p className="mt-2 text-[11px] text-slate-500">Solo disponible en la app de escritorio.</p>
+      )}
+    </section>
   )
 }
 

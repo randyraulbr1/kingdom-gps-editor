@@ -191,6 +191,20 @@ export class WorldEntityRepository {
     return this.setEnabled(worldId, !current.enabled)
   }
 
+  /** Fija el estado de sincronización (usado por "Subir al mundo"). */
+  async setSyncStatus(worldId: string, status: WorldSyncStatus, error: string | null = null): Promise<WorldEntity> {
+    const current = await this.get(worldId)
+    if (!current) throw new Error(`Entidad del mundo no encontrada: ${worldId}`)
+    const updated: WorldEntity = {
+      ...current,
+      syncStatus: status,
+      lastSyncError: error,
+      updatedAt: new Date().toISOString()
+    }
+    await this.restoreWithId(updated)
+    return updated
+  }
+
   async duplicate(worldId: string): Promise<WorldEntity> {
     const original = await this.get(worldId)
     if (!original) throw new Error(`Entidad del mundo no encontrada: ${worldId}`)

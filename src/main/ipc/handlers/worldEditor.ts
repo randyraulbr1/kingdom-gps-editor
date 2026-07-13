@@ -10,6 +10,8 @@ import { ipcMain } from 'electron'
 import { projectManager } from '../../projects/ProjectManager'
 import { WorldEntityRepository } from '../../worldEditor/worldEntityRepository'
 import { createCommandBus } from '../../commands/createCommandBus'
+import { readServerConfig } from './systemExtras'
+import { WorldSyncStatus } from '@shared-types/world'
 import type {
   CreateWorldEntityRequest,
   UpdateWorldEntityRequest,
@@ -19,6 +21,7 @@ import type {
   PublishWorldRequest,
   ConflictResolution
 } from '@shared-types/world'
+import type { PublishEntityResult } from '@shared-types/system'
 
 function getRepository(): WorldEntityRepository {
   return new WorldEntityRepository(projectManager.getDb())
@@ -91,7 +94,51 @@ export function registerWorldEditorHandlers(): void {
 
   ipcMain.handle('worldEditor:getSyncStatus', () => getRepository().getSyncStatus())
 
-  // ========== STUBS PARA FASE C/D (sincronización remota) ==========
+  // ========== Subir un pin al mundo/servidor ==========
+
+  ipcMain.handle('worldEditor:publishEntity', async (_event, worldId: string): Promise<PublishEntityResult> => {
+    const repository = getRepository()
+    const entity = await repository.get(worldId)
+    if (!entity) throw new Error(`Entidad del mundo no encontrada: ${worldId}`)
+
+    const { url, token } = await readServerConfig()
+    if (!url || !token) {
+      const updated = await repository.setSyncStatus(worldId, WorldSyncStatus.Failed, 'Falta configurar el servidor o el token en Configuración.')
+      return { ok: false, syncStatus: updated.syncStatus, message: 'Configura el servidor y el token en Configuración ▸ Servidor.' }
+    }
+
+    await repository.setSyncStatus(worldId, WorldSyncStatus.Syncing)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 20_000)
+    try {
+      // Contrato de la doc 11/02: POST /api/v1/world/entities con Bearer token.
+      const endpoint = `${url.replace(/\/$/, '')}/api/v1/world/entities`
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(entity),
+        signal: controller.signal
+      })
+      if (!response.ok) {
+        const detail = response.status === 401 || response.status === 403 ? 'token inválido o sin permiso' : `${response.status} ${response.statusText}`
+        const updated = await repository.setSyncStatus(worldId, WorldSyncStatus.Failed, detail)
+        return { ok: false, syncStatus: updated.syncStatus, message: `El servidor rechazó la subida: ${detail}` }
+      }
+      const updated = await repository.setSyncStatus(worldId, WorldSyncStatus.Synced, null)
+      return { ok: true, syncStatus: updated.syncStatus, message: 'Subido al mundo correctamente.' }
+    } catch (error) {
+      const message = error instanceof Error && error.name === 'AbortError' ? 'tiempo de espera agotado' : error instanceof Error ? error.message : String(error)
+      const updated = await repository.setSyncStatus(worldId, WorldSyncStatus.Failed, message)
+      return { ok: false, syncStatus: updated.syncStatus, message: `No se pudo subir: ${message}` }
+    } finally {
+      clearTimeout(timeout)
+    }
+  })
+
+  // ========== STUBS PARA FASE C/D (sincronización remota masiva) ==========
 
   ipcMain.handle('worldEditor:publishChanges', async (_event, _request: PublishWorldRequest) => {
     return { published: 0, failed: 0 }

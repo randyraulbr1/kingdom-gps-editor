@@ -89,6 +89,7 @@ const api: KingdomGpsApi = {
     listByType: (entityType) => ipcRenderer.invoke('worldEditor:listByType', entityType),
     toggleEntity: (worldId) => ipcRenderer.invoke('worldEditor:toggleEntity', worldId),
     duplicateEntity: (worldId) => ipcRenderer.invoke('worldEditor:duplicateEntity', worldId),
+    publishEntity: (worldId) => ipcRenderer.invoke('worldEditor:publishEntity', worldId),
     getPublishSummary: () => ipcRenderer.invoke('worldEditor:getPublishSummary'),
     publishChanges: (request) => ipcRenderer.invoke('worldEditor:publishChanges', request),
     getSyncStatus: () => ipcRenderer.invoke('worldEditor:getSyncStatus'),
@@ -116,6 +117,13 @@ const api: KingdomGpsApi = {
     getVersion: () => ipcRenderer.invoke('updates:getVersion'),
     check: () => ipcRenderer.invoke('updates:check'),
     downloadAndInstall: () => ipcRenderer.invoke('updates:downloadAndInstall')
+  },
+  capture: {
+    window: () => ipcRenderer.invoke('capture:window')
+  },
+  server: {
+    get: () => ipcRenderer.invoke('server:get'),
+    set: (config) => ipcRenderer.invoke('server:set', config)
   },
   dialog: {
     pickFolder: () => ipcRenderer.invoke('dialog:pickFolder')
