@@ -38,14 +38,26 @@ export interface PublishEntityResult {
   message?: string
 }
 
-/** Un jugador administrable desde el editor (panel adm). */
+/** Un jugador REAL registrado, administrable desde el editor (panel adm). */
 export interface GamePlayer {
   id: string
   nombre: string
   telefono?: string
   /** true si es la cuenta admin protegida. */
   esAdmin?: boolean
-  creado?: number
+  creado?: number | null
+  /** Datos de partida (lo que antes mostraba el admin dentro del juego). */
+  dinero?: number
+  nivel?: number
+  experiencia?: number
+  vida?: number | null
+  hambre?: number | null
+  muerto?: boolean
+  /** Total de objetos en la mochila. */
+  objetos?: number
+  /** Posición GPS [lat, lng] si existe. */
+  posicion?: [number, number] | null
+  conectado?: boolean
 }
 
 /** Datos para crear una cuenta de jugador de prueba desde el editor. */

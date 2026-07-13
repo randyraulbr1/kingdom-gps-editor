@@ -1,5 +1,21 @@
 import { useEffect, useState } from 'react'
-import { Users, RefreshCw, UserPlus, Trash2, ShieldCheck, AlertTriangle, Info } from 'lucide-react'
+import {
+  Users,
+  RefreshCw,
+  UserPlus,
+  Trash2,
+  ShieldCheck,
+  AlertTriangle,
+  Info,
+  ChevronRight,
+  ChevronDown,
+  Coins,
+  Heart,
+  Utensils,
+  Backpack,
+  MapPin,
+  Star
+} from 'lucide-react'
 import type { GamePlayer } from '@shared-types/system'
 
 /**
@@ -14,6 +30,7 @@ export function PlayersAdminPanel(): JSX.Element {
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null)
   const [form, setForm] = useState({ usuario: '', password: '', telefono: '' })
   const [confirmClear, setConfirmClear] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const flash = (ok: boolean, text: string): void => {
     setNotice({ ok, text })
@@ -88,7 +105,7 @@ export function PlayersAdminPanel(): JSX.Element {
       {/* Crear cuenta de prueba */}
       <section className="mt-4 rounded-lg border border-surface-border bg-surface-1 p-4">
         <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-100">
-          <UserPlus size={15} className="text-slate-400" /> Crear jugador de prueba
+          <UserPlus size={15} className="text-slate-400" /> Crear jugador
         </h2>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <input
@@ -139,17 +156,13 @@ export function PlayersAdminPanel(): JSX.Element {
         </div>
 
         {list.length === 0 ? (
-          <p className="text-xs text-slate-500">No hay jugadores (o aún no configuraste el servidor).</p>
+          <p className="text-xs text-slate-500">
+            No hay jugadores registrados todavía (o aún falta configurar/probar el servidor en Configuración ▸ Servidor).
+          </p>
         ) : (
           <ul className="divide-y divide-surface-border">
             {list.map((p) => (
-              <li key={p.id} className="flex items-center justify-between py-1.5 text-xs">
-                <span className="text-slate-200">
-                  {p.nombre}
-                  {p.esAdmin && <span className="ml-2 rounded bg-accent/20 px-1.5 py-0.5 text-[10px] text-accent">admin</span>}
-                </span>
-                {p.telefono && <span className="text-slate-500">{p.telefono}</span>}
-              </li>
+              <PlayerRow key={p.id} player={p} expanded={expandedId === p.id} onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)} />
             ))}
           </ul>
         )}
@@ -203,8 +216,68 @@ function Header(): JSX.Element {
         <Users size={18} /> Jugadores
       </h1>
       <p className="mt-1 text-xs text-slate-500">
-        Administra las cuentas del juego desde el editor. Autenticación automática (Configuración ▸ Servidor).
+        Cuentas <strong>reales</strong> registradas en el juego, con sus datos (dinero, nivel, inventario, posición…).
+        Es lo que antes hacía el panel de admin dentro del juego. Autenticación automática (Configuración ▸ Servidor).
       </p>
     </>
+  )
+}
+
+/** Una fila de jugador real, desplegable para ver sus datos de partida. */
+function PlayerRow({
+  player,
+  expanded,
+  onToggle
+}: {
+  player: GamePlayer
+  expanded: boolean
+  onToggle(): void
+}): JSX.Element {
+  const pos = player.posicion
+  return (
+    <li className="py-1">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center gap-2 rounded px-1 py-1.5 text-left text-xs hover:bg-surface-2"
+      >
+        {expanded ? <ChevronDown size={14} className="text-slate-500" /> : <ChevronRight size={14} className="text-slate-500" />}
+        <span className="flex-1 font-medium text-slate-200">
+          {player.nombre}
+          {player.esAdmin && <span className="ml-2 rounded bg-accent/20 px-1.5 py-0.5 text-[10px] text-accent">admin</span>}
+          {player.muerto && <span className="ml-2 rounded bg-red-900/40 px-1.5 py-0.5 text-[10px] text-red-300">muerto</span>}
+        </span>
+        <span className="flex items-center gap-1 text-[11px] text-slate-400"><Star size={11} /> {player.nivel ?? 1}</span>
+        <span className="flex items-center gap-1 text-[11px] text-amber-400"><Coins size={11} /> {player.dinero ?? 0}</span>
+      </button>
+
+      {expanded && (
+        <div className="ml-6 mb-1 grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border border-surface-border bg-surface-2/50 p-2 text-[11px] text-slate-300 sm:grid-cols-3">
+          <Datum icon={<Star size={11} className="text-slate-400" />} label="Nivel" value={String(player.nivel ?? 1)} />
+          <Datum icon={<Coins size={11} className="text-amber-400" />} label="Dinero" value={`$ ${player.dinero ?? 0}`} />
+          <Datum icon={<Star size={11} className="text-sky-400" />} label="Experiencia" value={String(player.experiencia ?? 0)} />
+          <Datum icon={<Heart size={11} className="text-red-400" />} label="Vida" value={player.vida != null ? String(player.vida) : '—'} />
+          <Datum icon={<Utensils size={11} className="text-orange-400" />} label="Hambre" value={player.hambre != null ? String(player.hambre) : '—'} />
+          <Datum icon={<Backpack size={11} className="text-slate-400" />} label="Objetos" value={String(player.objetos ?? 0)} />
+          <Datum
+            icon={<MapPin size={11} className="text-green-400" />}
+            label="Posición"
+            value={pos ? `${pos[0].toFixed(5)}, ${pos[1].toFixed(5)}` : '—'}
+          />
+          {player.telefono && <Datum icon={<Info size={11} className="text-slate-400" />} label="Teléfono" value={player.telefono} />}
+          <Datum icon={<Info size={11} className="text-slate-400" />} label="ID" value={player.id} />
+        </div>
+      )}
+    </li>
+  )
+}
+
+function Datum({ icon, label, value }: { icon: JSX.Element; label: string; value: string }): JSX.Element {
+  return (
+    <div className="flex items-center gap-1.5">
+      {icon}
+      <span className="text-slate-500">{label}:</span>
+      <span className="truncate text-slate-200">{value}</span>
+    </div>
   )
 }
