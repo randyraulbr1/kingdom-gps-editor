@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { RefreshCw, Download, CheckCircle2, AlertTriangle, Info, Camera, Server, Save } from 'lucide-react'
+import { RefreshCw, Download, CheckCircle2, AlertTriangle, Info, Server, Save } from 'lucide-react'
 import type { UpdateCheckResult } from '@shared-types/updates'
 import type { ServerConfig } from '@shared-types/system'
 
@@ -93,58 +93,8 @@ export function SettingsPanel(): JSX.Element {
         </p>
       </section>
 
-      <ScreenshotSection />
       <ServerSection />
     </div>
-  )
-}
-
-/**
- * Captura de pantalla: guarda la ventana como PNG con nombre único
- * (captura-N.png) en la carpeta de capturas y la abre en el explorador para
- * poder enviarla.
- */
-function ScreenshotSection(): JSX.Element {
-  const capture = typeof window !== 'undefined' ? window.api?.capture : undefined
-  const [last, setLast] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const shoot = async (): Promise<void> => {
-    if (!capture) return
-    setBusy(true)
-    setError(null)
-    try {
-      const result = await capture.window()
-      setLast(result.name)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <section className="mt-4 rounded-lg border border-surface-border bg-surface-1 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-medium text-slate-100">Captura de pantalla</h2>
-          <p className="text-[11px] text-slate-500">Guarda una imagen de la ventana para enviarla. El nombre es único en cada captura.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => void shoot()}
-          disabled={busy || !capture}
-          className="flex items-center gap-1.5 rounded-md border border-surface-border px-3 py-1.5 text-xs text-slate-200 hover:bg-surface-2 disabled:opacity-50"
-        >
-          <Camera size={13} className={busy ? 'animate-pulse' : ''} />
-          Hacer captura
-        </button>
-      </div>
-      {last && <Line icon={<CheckCircle2 size={13} className="text-green-400" />} text={`Guardada: ${last} (se abrió la carpeta).`} />}
-      {error && <Line icon={<AlertTriangle size={13} className="text-amber-400" />} text={`No se pudo capturar: ${error}`} />}
-      {!capture && <Line icon={<Info size={13} className="text-slate-400" />} text="Solo disponible en la app de escritorio." />}
-    </section>
   )
 }
 

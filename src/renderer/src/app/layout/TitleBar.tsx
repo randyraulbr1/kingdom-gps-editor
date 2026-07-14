@@ -1,5 +1,5 @@
-import type { CSSProperties } from 'react'
-import { Minus, Square, X, Crown } from 'lucide-react'
+import { useState, type CSSProperties } from 'react'
+import { Minus, Square, X, Crown, Camera, Check } from 'lucide-react'
 import { useProjectStore } from '@renderer/shared/store/projectStore'
 
 const dragStyle = { WebkitAppRegion: 'drag' } as CSSProperties
@@ -7,6 +7,19 @@ const noDragStyle = { WebkitAppRegion: 'no-drag' } as CSSProperties
 
 export function TitleBar(): JSX.Element {
   const project = useProjectStore((s) => s.current)
+  const [shot, setShot] = useState<'idle' | 'busy' | 'done'>('idle')
+
+  const capture = async (): Promise<void> => {
+    if (!window.api?.capture) return
+    setShot('busy')
+    try {
+      await window.api.capture.window()
+      setShot('done')
+      window.setTimeout(() => setShot('idle'), 2000)
+    } catch {
+      setShot('idle')
+    }
+  }
 
   return (
     <div
@@ -18,6 +31,25 @@ export function TitleBar(): JSX.Element {
         <span className="font-semibold">Kingdom GPS — Editor</span>
         {project && <span className="text-slate-500">— {project.name}</span>}
       </div>
+
+      {/* Botón de captura de pantalla, siempre visible en la barra superior. */}
+      <div style={noDragStyle} className="flex items-center">
+        <button
+          type="button"
+          onClick={() => void capture()}
+          disabled={shot === 'busy'}
+          title="Hacer captura de pantalla (se guarda con nombre único y abre la carpeta)"
+          className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs ${
+            shot === 'done'
+              ? 'border-green-600/50 text-green-400'
+              : 'border-surface-border text-slate-300 hover:bg-surface-2'
+          }`}
+        >
+          {shot === 'done' ? <Check size={13} /> : <Camera size={13} className={shot === 'busy' ? 'animate-pulse' : ''} />}
+          {shot === 'done' ? 'Guardada' : 'Captura'}
+        </button>
+      </div>
+
       <div style={noDragStyle} className="flex h-full">
         <button
           type="button"
