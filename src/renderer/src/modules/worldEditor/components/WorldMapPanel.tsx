@@ -25,6 +25,7 @@ import { LayersPanel } from './LayersPanel'
 import { ZonesPanel } from './ZonesPanel'
 import { EntityInspector } from './EntityInspector'
 import { MapContextMenu, type MapMenuContext } from './MapContextMenu'
+import { SyncStatusMenu } from './SyncStatusMenu'
 import { OsmImportModal } from './OsmImportModal'
 import { ShopModal } from './ShopModal'
 import { NpcModal } from './NpcModal'
@@ -40,7 +41,7 @@ import { getReferencesTo, unlinkReference, worldIdsWithBrokenRefs } from '../con
 import { makeClipboardEntry, buildPasteRequest } from '../utils/clipboard'
 import { readNpcConfig, npcPinBadge } from '../content/npcConfig'
 import type { WorldEntityUI } from '../types'
-import { Layers, Map as MapIcon, Hexagon, Download, List, Swords, ShieldCheck } from 'lucide-react'
+import { Layers, Map as MapIcon, Hexagon, Download, List, Swords, ShieldCheck, UploadCloud } from 'lucide-react'
 
 /** Color del punto de estado de sincronización que se muestra sobre cada marcador. */
 const SYNC_DOT_COLORS: Record<string, string> = {
@@ -176,7 +177,7 @@ function makeDivIcon(
   return L.divIcon({
     html: `<div style="position:relative;width:30px;height:30px;border-radius:50%;background:${colors.bg};border:2px solid ${
       isSelected ? '#ffffff' : colors.color
-    };display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 1px 4px rgba(0,0,0,0.5);">${emoji}<span title="${syncStatus}" style="position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;background:${dot};border:1.5px solid #1e1f22;"></span>${badgeHtml}</div>`,
+    };display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 1px 4px rgba(0,0,0,0.5);">${emoji}<span class="sync-dot" title="Estado: ${syncStatus} · clic para opciones" style="position:absolute;top:-4px;right:-4px;width:13px;height:13px;border-radius:50%;background:${dot};border:2px solid #1e1f22;cursor:pointer;"></span>${badgeHtml}</div>`,
     className: '',
     iconSize: [30, 30],
     iconAnchor: [15, 15]
@@ -344,6 +345,11 @@ export function WorldMapPanel(): JSX.Element {
 
   // Menú contextual y modal OSM
   const [contextMenu, setContextMenu] = useState<MapMenuContext | null>(null)
+  // Menú de estado de sincronización (al hacer clic en la bolita del pin).
+  const [statusMenu, setStatusMenu] = useState<{
+    entity: WorldEntityUI
+    screen: { x: number; y: number }
+  } | null>(null)
   const [osmZone, setOsmZone] = useState<WorldZone | null>(null)
   // Entidad cuya interacción (tienda/NPC) está abierta en modal.
   const [shopEntity, setShopEntity] = useState<WorldEntityUI | null>(null)
@@ -359,7 +365,10 @@ export function WorldMapPanel(): JSX.Element {
   useEffect(() => {
     if (!contextMenu) return
     const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') setContextMenu(null)
+      if (event.key === 'Escape') {
+        setContextMenu(null)
+        setStatusMenu(null)
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -488,6 +497,39 @@ export function WorldMapPanel(): JSX.Element {
     } catch (error) {
       flash(`Error al subir: ${error instanceof Error ? error.message : String(error)}`)
     }
+  }
+
+  // Cola de sincronización: pines que aún no están en el juego (local/pendiente/
+  // fallido). Reintentar los fallidos entra aquí también, así no se pierde nada.
+  const PENDING_STATES = new Set(['local', 'pending', 'failed'])
+  const pendingEntities = entities.filter((e) => PENDING_STATES.has(e.syncStatus))
+  const [syncing, setSyncing] = useState(false)
+
+  const handleSyncPending = async (): Promise<void> => {
+    if (syncing) return
+    const queue = entities.filter((e) => PENDING_STATES.has(e.syncStatus))
+    if (queue.length === 0) {
+      flash('No hay pines pendientes de subir.')
+      return
+    }
+    setSyncing(true)
+    let ok = 0
+    let failed = 0
+    for (let i = 0; i < queue.length; i++) {
+      const e = queue[i]
+      flash(`Subiendo ${i + 1}/${queue.length}: ${e.name}…`)
+      try {
+        const result = await window.api.worldEditor.publishEntity(e.worldId)
+        updateEntity(e.worldId, { syncStatus: result.syncStatus as WorldEntityUI['syncStatus'] })
+        if (result.ok) ok++
+        else failed++
+      } catch {
+        updateEntity(e.worldId, { syncStatus: 'failed' as WorldEntityUI['syncStatus'] })
+        failed++
+      }
+    }
+    setSyncing(false)
+    flash(failed === 0 ? `Subidos ${ok} pines al mundo.` : `Subidos ${ok}, fallaron ${failed}. Reintenta los rojos.`)
   }
 
   // ===== Portapapeles interno: copiar / cortar / pegar (doc 28) =====
@@ -811,6 +853,20 @@ export function WorldMapPanel(): JSX.Element {
             </button>
             <button
               type="button"
+              onClick={() => void handleSyncPending()}
+              disabled={syncing || pendingEntities.length === 0}
+              title="Subir al mundo todos los pines pendientes (locales, con cambios o fallidos)"
+              className={`flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs disabled:opacity-40 ${
+                pendingEntities.length > 0
+                  ? 'border-accent bg-accent-muted text-accent'
+                  : 'border-surface-border text-slate-300 hover:bg-surface-2'
+              }`}
+            >
+              <UploadCloud size={12} className={syncing ? 'animate-pulse' : ''} />
+              {syncing ? 'Subiendo…' : `Subir pendientes${pendingEntities.length > 0 ? ` (${pendingEntities.length})` : ''}`}
+            </button>
+            <button
+              type="button"
               onClick={() => void handleExport()}
               disabled={exporting}
               title="Validar y exportar el mundo (entidades + zonas) a export/world.json"
@@ -968,7 +1024,20 @@ export function WorldMapPanel(): JSX.Element {
                   entityBadge(entity, brokenRefIds)
                 )}
                 eventHandlers={{
-                  click: () => selectEntity(entity.worldId),
+                  click: (event: LeafletMouseEvent) => {
+                    const target = event.originalEvent?.target as HTMLElement | null
+                    if (target?.closest?.('.sync-dot')) {
+                      L.DomEvent.stopPropagation(event)
+                      selectEntity(entity.worldId)
+                      setContextMenu(null)
+                      setStatusMenu({
+                        entity,
+                        screen: { x: event.containerPoint.x, y: event.containerPoint.y }
+                      })
+                      return
+                    }
+                    selectEntity(entity.worldId)
+                  },
                   dblclick: () => handleOpenInteraction(entity),
                   contextmenu: (event: LeafletMouseEvent) => {
                     event.originalEvent.preventDefault()
@@ -1114,6 +1183,19 @@ export function WorldMapPanel(): JSX.Element {
               onDuplicateEntity={(worldId) => void handleDuplicate(worldId)}
               onToggleEntity={(worldId) => void handleToggle(worldId)}
               onDeleteEntity={(worldId) => void handleDelete(worldId)}
+            />
+          )}
+
+          {statusMenu && (
+            <div className="absolute inset-0 z-[1200]" onClick={() => setStatusMenu(null)} />
+          )}
+          {statusMenu && (
+            <SyncStatusMenu
+              entity={statusMenu.entity}
+              screen={statusMenu.screen}
+              onClose={() => setStatusMenu(null)}
+              onPublish={(worldId) => void handlePublishEntity(worldId)}
+              onShowMessage={(message) => flash(message)}
             />
           )}
 
