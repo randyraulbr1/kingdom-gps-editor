@@ -9,6 +9,9 @@ publish:
   provider: github
   owner: randyraulbr1
   repo: kingdom-gps-editor
+  # "release" = Release publicada (no borrador), para que electron-updater la
+  # vea sin token. Con "draft" el botón Actualizar no encontraría nada.
+  releaseType: release
 files:
   - out/**
   - package.json
