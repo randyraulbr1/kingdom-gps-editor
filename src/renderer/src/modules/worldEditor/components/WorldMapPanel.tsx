@@ -736,13 +736,13 @@ export function WorldMapPanel(): JSX.Element {
   }, [])
 
   return (
-    <div className="flex h-full w-full">
+    <div className="flex h-full w-full overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-2 border-b border-surface-border bg-surface-1 px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2 border-b border-surface-border bg-surface-1 px-3 py-2">
           <span className="text-xs text-slate-500">
             {entities.length} entidades · {zones.length} zonas · {routes.length} rutas
           </span>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
             <MapSearchBar zones={zones} routes={routes} onSelect={goToSearchResult} />
             <div className="flex items-center gap-1" title="Estilo del mapa">
               <MapIcon size={12} className="text-slate-500" />
