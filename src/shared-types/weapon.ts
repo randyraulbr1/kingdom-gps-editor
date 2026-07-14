@@ -1,4 +1,4 @@
-import type { ItemRarity, ItemBonus } from './item'
+import type { ItemRarity, ItemBonus, IconRegion } from './item'
 
 export type WeaponClass =
   | 'sword'
@@ -21,6 +21,7 @@ export interface Weapon {
   category: WeaponClass
   rarity: ItemRarity
   iconId: number | null
+  iconRef: IconRegion | null
   /** Daño base por golpe. */
   damage: number
   /** Golpes por segundo. */
@@ -73,6 +74,7 @@ export function createEmptyWeaponInput(): WeaponInput {
     category: 'sword',
     rarity: 'common',
     iconId: null,
+    iconRef: null,
     damage: 1,
     attackSpeed: 1,
     range: 1,

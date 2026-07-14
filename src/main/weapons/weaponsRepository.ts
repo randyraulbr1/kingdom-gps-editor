@@ -9,6 +9,7 @@ interface WeaponRow {
   category: string
   rarity: string
   icon_id: number | null
+  icon_ref: string | null
   damage: number
   attack_speed: number
   range: number
@@ -33,6 +34,7 @@ function toWeapon(row: WeaponRow): Weapon {
     category: row.category as Weapon['category'],
     rarity: row.rarity as Weapon['rarity'],
     iconId: row.icon_id,
+    iconRef: row.icon_ref ? JSON.parse(row.icon_ref) : null,
     damage: row.damage,
     attackSpeed: row.attack_speed,
     range: row.range,
@@ -58,6 +60,7 @@ function toRowPatch(input: Partial<WeaponInput>): Record<string, unknown> {
   if (input.category !== undefined) row.category = input.category
   if (input.rarity !== undefined) row.rarity = input.rarity
   if (input.iconId !== undefined) row.icon_id = input.iconId
+  if (input.iconRef !== undefined) row.icon_ref = input.iconRef ? JSON.stringify(input.iconRef) : null
   if (input.damage !== undefined) row.damage = input.damage
   if (input.attackSpeed !== undefined) row.attack_speed = input.attackSpeed
   if (input.range !== undefined) row.range = input.range

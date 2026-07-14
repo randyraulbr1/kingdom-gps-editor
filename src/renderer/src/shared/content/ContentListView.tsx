@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { FixedSizeList } from 'react-window'
 import { RarityBadge } from '@renderer/shared/components/RarityBadge'
-import { IconThumbnail } from '@renderer/shared/components/IconThumbnail'
+import { CroppedIcon } from '@renderer/shared/components/CroppedIcon'
 import type { ContentRecord } from './contentTypes'
 
 interface Props<T extends ContentRecord> {
@@ -57,7 +57,7 @@ export function ContentListView<T extends ContentRecord>({
                   isSelected ? 'bg-accent-muted text-accent' : 'text-slate-300 hover:bg-surface-2'
                 }`}
               >
-                <IconThumbnail iconId={record.iconId} size={24} />
+                <CroppedIcon iconId={record.iconId} region={record.iconRef ?? null} size={24} />
                 <span className="w-14 shrink-0 text-xs text-slate-500">#{record.id}</span>
                 <span className="flex-1 truncate">{record.name}</span>
                 <span className="w-28 shrink-0 truncate text-xs text-slate-500">{record.category}</span>

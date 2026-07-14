@@ -68,7 +68,7 @@ function SingleWeaponInspector({
 }): JSX.Element {
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-      <IconField iconId={weapon.iconId} onChange={(iconId) => onCommit({ iconId })} />
+      <IconField iconId={weapon.iconId} onChange={(iconId) => onCommit({ iconId })} iconRef={weapon.iconRef} onChangeRef={(iconRef) => onCommit({ iconRef })} />
 
       <TextField label="Nombre" value={weapon.name} onCommit={(name) => onCommit({ name })} />
       <TextAreaField

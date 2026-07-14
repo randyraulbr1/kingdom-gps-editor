@@ -1,5 +1,5 @@
 import { RarityBadge } from '@renderer/shared/components/RarityBadge'
-import { IconThumbnail } from '@renderer/shared/components/IconThumbnail'
+import { CroppedIcon } from '@renderer/shared/components/CroppedIcon'
 import type { ContentRecord, ContentColumn } from './contentTypes'
 
 interface Props<T extends ContentRecord> {
@@ -54,7 +54,7 @@ export function ContentTableView<T extends ContentRecord>({
                 }`}
               >
                 <td className="px-3 py-1.5">
-                  <IconThumbnail iconId={record.iconId} size={20} />
+                  <CroppedIcon iconId={record.iconId} region={record.iconRef ?? null} size={20} />
                 </td>
                 <td className="px-3 py-1.5 text-xs text-slate-500">#{record.id}</td>
                 <td className="px-3 py-1.5">{record.name}</td>

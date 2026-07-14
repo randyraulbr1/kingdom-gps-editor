@@ -56,7 +56,7 @@ function SingleMonsterInspector({
 }): JSX.Element {
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-      <IconField iconId={monster.iconId} onChange={(iconId) => onCommit({ iconId })} />
+      <IconField iconId={monster.iconId} onChange={(iconId) => onCommit({ iconId })} iconRef={monster.iconRef} onChangeRef={(iconRef) => onCommit({ iconRef })} />
 
       <TextField label="Nombre" value={monster.name} onCommit={(name) => onCommit({ name })} />
       <TextAreaField label="Descripción" value={monster.description} onCommit={(description) => onCommit({ description })} />

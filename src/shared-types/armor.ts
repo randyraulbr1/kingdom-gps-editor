@@ -1,4 +1,4 @@
-import type { ItemRarity, ItemBonus } from './item'
+import type { ItemRarity, ItemBonus, IconRegion } from './item'
 
 /** Slot de equipamiento; hace de "categoría" para el framework de contenido. */
 export type ArmorSlot = 'head' | 'chest' | 'legs' | 'boots' | 'gloves' | 'shield' | 'cape' | 'misc'
@@ -10,6 +10,7 @@ export interface Armor {
   category: ArmorSlot
   rarity: ItemRarity
   iconId: number | null
+  iconRef: IconRegion | null
   /** Defensa física base. */
   defense: number
   /** Resistencia mágica base. */
@@ -46,6 +47,7 @@ export function createEmptyArmorInput(): ArmorInput {
     category: 'chest',
     rarity: 'common',
     iconId: null,
+    iconRef: null,
     defense: 1,
     magicResist: 0,
     value: 0,

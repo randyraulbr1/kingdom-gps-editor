@@ -1,4 +1,4 @@
-import type { ItemRarity } from './item'
+import type { ItemRarity, IconRegion } from './item'
 
 /** Categoría de monstruo; hace de "categoría" para el framework de contenido. */
 export type MonsterCategory = 'beast' | 'undead' | 'humanoid' | 'elemental' | 'dragon' | 'demon' | 'boss' | 'other'
@@ -10,6 +10,7 @@ export interface Monster {
   category: MonsterCategory
   rarity: ItemRarity
   iconId: number | null
+  iconRef: IconRegion | null
   level: number
   hp: number
   damage: number
@@ -55,6 +56,7 @@ export function createEmptyMonsterInput(): MonsterInput {
     category: 'beast',
     rarity: 'common',
     iconId: null,
+    iconRef: null,
     level: 1,
     hp: 100,
     damage: 10,

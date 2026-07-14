@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { FixedSizeGrid } from 'react-window'
 import { RarityBadge, rarityBorderClass } from '@renderer/shared/components/RarityBadge'
-import { IconThumbnail } from '@renderer/shared/components/IconThumbnail'
+import { CroppedIcon } from '@renderer/shared/components/CroppedIcon'
 import type { ContentRecord } from './contentTypes'
 
 const CELL_SIZE = 112
@@ -77,7 +77,7 @@ export function ContentGrid<T extends ContentRecord>({
                       : `${rarityBorderClass(record.rarity)}/30 hover:bg-surface-3`
                   }`}
                 >
-                  <IconThumbnail iconId={record.iconId} size={40} />
+                  <CroppedIcon iconId={record.iconId} region={record.iconRef ?? null} size={40} />
                   <span className="w-full truncate px-1 text-center text-[10px] text-slate-300">{record.name}</span>
                   <span className="text-[9px] text-slate-600">#{record.id}</span>
                   <RarityBadge rarity={record.rarity} />

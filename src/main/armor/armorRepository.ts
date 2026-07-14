@@ -9,6 +9,7 @@ interface ArmorRow {
   category: string
   rarity: string
   icon_id: number | null
+  icon_ref: string | null
   defense: number
   magic_resist: number
   value: number
@@ -31,6 +32,7 @@ function toArmor(row: ArmorRow): Armor {
     category: row.category as Armor['category'],
     rarity: row.rarity as Armor['rarity'],
     iconId: row.icon_id,
+    iconRef: row.icon_ref ? JSON.parse(row.icon_ref) : null,
     defense: row.defense,
     magicResist: row.magic_resist,
     value: row.value,
@@ -54,6 +56,7 @@ function toRowPatch(input: Partial<ArmorInput>): Record<string, unknown> {
   if (input.category !== undefined) row.category = input.category
   if (input.rarity !== undefined) row.rarity = input.rarity
   if (input.iconId !== undefined) row.icon_id = input.iconId
+  if (input.iconRef !== undefined) row.icon_ref = input.iconRef ? JSON.stringify(input.iconRef) : null
   if (input.defense !== undefined) row.defense = input.defense
   if (input.magicResist !== undefined) row.magic_resist = input.magicResist
   if (input.value !== undefined) row.value = input.value

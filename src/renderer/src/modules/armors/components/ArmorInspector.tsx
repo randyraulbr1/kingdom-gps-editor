@@ -70,7 +70,7 @@ function SingleArmorInspector({
 }): JSX.Element {
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-      <IconField iconId={armor.iconId} onChange={(iconId) => onCommit({ iconId })} />
+      <IconField iconId={armor.iconId} onChange={(iconId) => onCommit({ iconId })} iconRef={armor.iconRef} onChangeRef={(iconRef) => onCommit({ iconRef })} />
 
       <TextField label="Nombre" value={armor.name} onCommit={(name) => onCommit({ name })} />
       <TextAreaField

@@ -96,6 +96,7 @@ export interface WeaponsTable {
   category: string
   rarity: string
   icon_id: number | null
+  icon_ref: string | null
   damage: number
   attack_speed: number
   range: number
@@ -119,6 +120,7 @@ export interface ArmorTable {
   category: string
   rarity: string
   icon_id: number | null
+  icon_ref: string | null
   defense: number
   magic_resist: number
   value: number
@@ -152,6 +154,7 @@ export interface MonstersTable {
   category: string
   rarity: string
   icon_id: number | null
+  icon_ref: string | null
   level: number
   hp: number
   damage: number

@@ -1,4 +1,4 @@
-import type { ItemRarity } from '@shared-types/item'
+import type { ItemRarity, IconRegion } from '@shared-types/item'
 
 /**
  * Forma mínima que todo registro de contenido (objetos, armas, armaduras, …)
@@ -9,6 +9,8 @@ export interface ContentRecord {
   id: number
   name: string
   iconId: number | null
+  /** Recorte del icono (opcional; los tipos que lo soporten). */
+  iconRef?: IconRegion | null
   rarity: ItemRarity
   category: string
   updatedAt: string

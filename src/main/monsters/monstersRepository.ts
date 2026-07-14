@@ -9,6 +9,7 @@ interface MonsterRow {
   category: string
   rarity: string
   icon_id: number | null
+  icon_ref: string | null
   level: number
   hp: number
   damage: number
@@ -31,6 +32,7 @@ function toMonster(row: MonsterRow): Monster {
     category: row.category as Monster['category'],
     rarity: row.rarity as Monster['rarity'],
     iconId: row.icon_id,
+    iconRef: row.icon_ref ? JSON.parse(row.icon_ref) : null,
     level: row.level,
     hp: row.hp,
     damage: row.damage,
@@ -54,6 +56,7 @@ function toRowPatch(input: Partial<MonsterInput>): Record<string, unknown> {
   if (input.category !== undefined) row.category = input.category
   if (input.rarity !== undefined) row.rarity = input.rarity
   if (input.iconId !== undefined) row.icon_id = input.iconId
+  if (input.iconRef !== undefined) row.icon_ref = input.iconRef ? JSON.stringify(input.iconRef) : null
   if (input.level !== undefined) row.level = input.level
   if (input.hp !== undefined) row.hp = input.hp
   if (input.damage !== undefined) row.damage = input.damage
