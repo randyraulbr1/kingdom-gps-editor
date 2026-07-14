@@ -1,9 +1,7 @@
-import { useState } from 'react'
 import { useItemsStore } from '../store'
 import { useContentActions } from '@renderer/shared/content/useContentModule'
 import { ITEM_CATEGORIES, ITEM_RARITIES, createEmptyItemInput, type Item, type ItemInput } from '@shared-types/item'
-import { IconThumbnail } from '@renderer/shared/components/IconThumbnail'
-import { IconPickerModal } from '@renderer/shared/components/IconPickerModal'
+import { IconField } from '@renderer/shared/components/IconField'
 import {
   TextField,
   TextAreaField,
@@ -65,41 +63,9 @@ function SingleItemInspector({
   item: Item
   onCommit(patch: Partial<ItemInput>): void
 }): JSX.Element {
-  const [pickingIcon, setPickingIcon] = useState(false)
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-      <div
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => {
-          const iconId = event.dataTransfer.getData('application/x-kgps-icon-id')
-          if (iconId) onCommit({ iconId: Number(iconId) })
-        }}
-        className="flex items-center gap-3 rounded-md border border-dashed border-surface-border bg-surface-2 p-3"
-      >
-        <IconThumbnail iconId={item.iconId} size={48} />
-        <div className="min-w-0 flex-1">
-          <button
-            type="button"
-            onClick={() => setPickingIcon(true)}
-            className="rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-white hover:brightness-110"
-          >
-            {item.iconId ? 'Cambiar icono' : 'Elegir icono'}
-          </button>
-          <div className="mt-1 text-[11px] text-slate-500">
-            Elige desde la Biblioteca o arrástralo aquí. Se guarda la referencia, no la imagen.
-          </div>
-        </div>
-      </div>
-      {pickingIcon && (
-        <IconPickerModal
-          currentIconId={item.iconId}
-          onClose={() => setPickingIcon(false)}
-          onPick={(iconId) => {
-            onCommit({ iconId })
-            setPickingIcon(false)
-          }}
-        />
-      )}
+      <IconField iconId={item.iconId} onChange={(iconId) => onCommit({ iconId })} />
 
       <TextField label="Nombre" value={item.name} onCommit={(name) => onCommit({ name })} />
       <TextAreaField label="Descripción" value={item.description} onCommit={(description) => onCommit({ description })} />

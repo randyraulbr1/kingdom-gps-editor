@@ -1,6 +1,6 @@
 {
   "name": "kingdomgps-editor",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Kingdom GPS - Editor de base de datos del juego (herramienta interna, no es el juego)",
   "main": "out/main/index.js",
   "author": "Kingdom GPS Team",

@@ -2,7 +2,7 @@ import { useArmorStore } from '../store'
 import { useContentActions } from '@renderer/shared/content/useContentModule'
 import { ITEM_RARITIES } from '@shared-types/item'
 import { ARMOR_SLOTS, createEmptyArmorInput, type Armor, type ArmorInput } from '@shared-types/armor'
-import { IconThumbnail } from '@renderer/shared/components/IconThumbnail'
+import { IconField } from '@renderer/shared/components/IconField'
 import {
   TextField,
   TextAreaField,
@@ -70,17 +70,7 @@ function SingleArmorInspector({
 }): JSX.Element {
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-      <div
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => {
-          const iconId = event.dataTransfer.getData('application/x-kgps-icon-id')
-          if (iconId) onCommit({ iconId: Number(iconId) })
-        }}
-        className="flex items-center gap-3 rounded-md border border-dashed border-surface-border bg-surface-2 p-3"
-      >
-        <IconThumbnail iconId={armor.iconId} size={48} />
-        <div className="text-xs text-slate-500">Arrastra un icono aquí desde la Biblioteca de Iconos</div>
-      </div>
+      <IconField iconId={armor.iconId} onChange={(iconId) => onCommit({ iconId })} />
 
       <TextField label="Nombre" value={armor.name} onCommit={(name) => onCommit({ name })} />
       <TextAreaField

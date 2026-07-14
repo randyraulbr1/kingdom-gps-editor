@@ -2,7 +2,7 @@ import { useMonsterStore } from '../store'
 import { useContentActions } from '@renderer/shared/content/useContentModule'
 import { ITEM_RARITIES } from '@shared-types/item'
 import { MONSTER_CATEGORIES, createEmptyMonsterInput, type Monster, type MonsterInput } from '@shared-types/monster'
-import { IconThumbnail } from '@renderer/shared/components/IconThumbnail'
+import { IconField } from '@renderer/shared/components/IconField'
 import {
   TextField,
   TextAreaField,
@@ -56,17 +56,7 @@ function SingleMonsterInspector({
 }): JSX.Element {
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-      <div
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => {
-          const iconId = event.dataTransfer.getData('application/x-kgps-icon-id')
-          if (iconId) onCommit({ iconId: Number(iconId) })
-        }}
-        className="flex items-center gap-3 rounded-md border border-dashed border-surface-border bg-surface-2 p-3"
-      >
-        <IconThumbnail iconId={monster.iconId} size={48} />
-        <div className="text-xs text-slate-500">Arrastra un icono aquí desde la Biblioteca de Iconos</div>
-      </div>
+      <IconField iconId={monster.iconId} onChange={(iconId) => onCommit({ iconId })} />
 
       <TextField label="Nombre" value={monster.name} onCommit={(name) => onCommit({ name })} />
       <TextAreaField label="Descripción" value={monster.description} onCommit={(description) => onCommit({ description })} />
