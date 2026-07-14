@@ -19,17 +19,29 @@ const SERVER_CONFIG_PATH = (): string => path.join(app.getPath('userData'), 'ser
 let cachedToken: string | null = null
 let cachedRole: string | null = null
 
+/**
+ * Valores por defecto para que el editor funcione sin configurar nada a mano.
+ * El servidor del juego (Render) y el nombre de admin conocido. Solo la
+ * contraseña la pone el usuario una vez.
+ */
+export const DEFAULT_SERVER_URL = 'https://mariel-online.onrender.com'
+export const DEFAULT_ADMIN_USER = 'randy'
+
 export async function readServerConfig(): Promise<ServerConfig> {
   try {
     const raw = await fs.readFile(SERVER_CONFIG_PATH(), 'utf-8')
     const parsed = JSON.parse(raw) as Partial<ServerConfig> & { token?: string }
+    const url = typeof parsed.url === 'string' && parsed.url.trim() ? parsed.url.trim() : DEFAULT_SERVER_URL
+    const adminUser =
+      typeof parsed.adminUser === 'string' && parsed.adminUser.trim() ? parsed.adminUser.trim() : DEFAULT_ADMIN_USER
     return {
-      url: typeof parsed.url === 'string' ? parsed.url : '',
-      adminUser: typeof parsed.adminUser === 'string' ? parsed.adminUser : '',
+      url,
+      adminUser,
       adminPass: typeof parsed.adminPass === 'string' ? parsed.adminPass : ''
     }
   } catch {
-    return { url: '', adminUser: '', adminPass: '' }
+    // Sin archivo de config todavía: usar los valores por defecto.
+    return { url: DEFAULT_SERVER_URL, adminUser: DEFAULT_ADMIN_USER, adminPass: '' }
   }
 }
 

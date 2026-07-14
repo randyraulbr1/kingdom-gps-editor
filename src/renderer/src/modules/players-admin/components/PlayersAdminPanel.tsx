@@ -157,7 +157,9 @@ export function PlayersAdminPanel(): JSX.Element {
 
         {list.length === 0 ? (
           <p className="text-xs text-slate-500">
-            No hay jugadores registrados todavía (o aún falta configurar/probar el servidor en Configuración ▸ Servidor).
+            La lista está vacía. Si crees que sí hay jugadores, entra a <strong>Configuración ▸ Servidor</strong>,
+            escribe la <strong>contraseña de admin</strong> (la URL y el usuario ya vienen puestos), pulsa
+            <strong> Probar conexión</strong> y vuelve a <strong>Actualizar</strong> aquí.
           </p>
         ) : (
           <ul className="divide-y divide-surface-border">
