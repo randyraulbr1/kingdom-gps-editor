@@ -3,7 +3,7 @@ import { ItemsPanel } from './components/ItemsPanel'
 
 export const itemsModule = defineModule({
   id: 'items',
-  name: 'Objetos',
+  name: 'General',
   icon: 'Package',
   group: 'content',
   capabilities: ['create', 'edit', 'delete', 'export', 'bulkEdit'],
