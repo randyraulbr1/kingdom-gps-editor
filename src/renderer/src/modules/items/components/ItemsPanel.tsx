@@ -3,6 +3,7 @@ import type { ContentColumn } from '@renderer/shared/content/contentTypes'
 import { ITEM_CATEGORIES, ITEM_RARITIES, createEmptyItemInput, type Item } from '@shared-types/item'
 import { useItemsStore } from '../store'
 import { ItemInspector } from './ItemInspector'
+import { ItemsIoBar } from './ItemsIoBar'
 
 const TABLE_COLUMNS: ContentColumn<Item>[] = [
   { header: 'Valor', render: (item) => item.value },
@@ -28,12 +29,17 @@ const CONFIG: ContentModuleConfig<Item> = {
  */
 export function ItemsPanel(): JSX.Element {
   return (
-    <ContentModulePanel
-      useStore={useItemsStore}
-      api={window.api.items}
-      createEmpty={createEmptyItemInput}
-      config={CONFIG}
-      inspector={<ItemInspector />}
-    />
+    <div className="flex h-full flex-col">
+      <ItemsIoBar />
+      <div className="min-h-0 flex-1">
+        <ContentModulePanel
+          useStore={useItemsStore}
+          api={window.api.items}
+          createEmpty={createEmptyItemInput}
+          config={CONFIG}
+          inspector={<ItemInspector />}
+        />
+      </div>
+    </div>
   )
 }
