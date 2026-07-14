@@ -1,9 +1,23 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { getModule, getToolsModules, getSystemModules } from '@renderer/modules/registry'
 import type { RendererModuleDefinition } from '@renderer/modules/defineModule'
 import type { ModuleId } from '@shared-types/module'
 import { resolveIcon } from './iconResolver'
+
+/** Comprueba una vez si hay actualización nueva (para el badge de Configuración). */
+function useUpdateAvailable(): boolean {
+  const [available, setAvailable] = useState(false)
+  useEffect(() => {
+    const api = typeof window !== 'undefined' ? window.api?.updates : undefined
+    if (!api) return
+    api
+      .check()
+      .then((r) => setAvailable(r.supported === true && r.available === true))
+      .catch(() => undefined)
+  }, [])
+  return available
+}
 
 interface SidebarProps {
   activeModuleId: ModuleId | null
@@ -52,12 +66,14 @@ function ModuleButton({
   module,
   activeModuleId,
   onOpenModule,
-  indent
+  indent,
+  badge
 }: {
   module: RendererModuleDefinition
   activeModuleId: ModuleId | null
   onOpenModule(id: ModuleId): void
   indent?: boolean
+  badge?: boolean
 }): JSX.Element {
   const Icon = resolveIcon(module.icon)
   const isActive = module.id === activeModuleId
@@ -69,8 +85,12 @@ function ModuleButton({
         indent ? 'pl-8' : 'pl-3'
       } ${isActive ? 'bg-accent-muted text-accent' : 'text-slate-300 hover:bg-surface-2'}`}
     >
-      <Icon size={15} className="shrink-0" />
+      <span className="relative shrink-0">
+        <Icon size={15} />
+        {badge && <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-accent ring-2 ring-surface-0" />}
+      </span>
       <span className="truncate">{module.name}</span>
+      {badge && <span className="ml-auto rounded bg-accent/20 px-1.5 py-0.5 text-[9px] font-medium text-accent">nueva</span>}
     </button>
   )
 }
@@ -141,6 +161,7 @@ function SectionTitle({ title }: { title: string }): JSX.Element {
  * plegables (subtipos dentro), luego Herramientas y, al fondo, Configuración.
  */
 export function Sidebar({ activeModuleId, onOpenModule }: SidebarProps): JSX.Element {
+  const updateAvailable = useUpdateAvailable()
   return (
     <div className="flex h-full w-56 shrink-0 flex-col overflow-y-auto border-r border-surface-border bg-surface-0 py-2">
       <div className="mb-2">
@@ -180,7 +201,13 @@ export function Sidebar({ activeModuleId, onOpenModule }: SidebarProps): JSX.Ele
       <div className="mt-auto border-t border-surface-border pt-2">
         <SectionTitle title="Sistema" />
         {getSystemModules().map((module) => (
-          <ModuleButton key={module.id} module={module} activeModuleId={activeModuleId} onOpenModule={onOpenModule} />
+          <ModuleButton
+            key={module.id}
+            module={module}
+            activeModuleId={activeModuleId}
+            onOpenModule={onOpenModule}
+            badge={module.id === 'settings' && updateAvailable}
+          />
         ))}
       </div>
     </div>

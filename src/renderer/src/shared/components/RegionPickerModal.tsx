@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { X, Grid3x3, Crop } from 'lucide-react'
+import { X, Grid3x3, Crop, ZoomIn, ZoomOut } from 'lucide-react'
 import type { IconRegion } from '@shared-types/item'
 
 interface Props {
@@ -26,6 +26,7 @@ export function RegionPickerModal({ iconId, current, onClose, onPick }: Props): 
   const [sel, setSel] = useState<Sel | null>(current ? { x: current.x, y: current.y, w: current.width, h: current.height } : null)
   const [grid, setGrid] = useState(false)
   const [cell, setCell] = useState('32')
+  const [zoom, setZoom] = useState(1)
   const imgRef = useRef<HTMLImageElement | null>(null)
   const dragging = useRef<{ startX: number; startY: number } | null>(null)
 
@@ -90,7 +91,9 @@ export function RegionPickerModal({ iconId, current, onClose, onPick }: Props): 
     else onPick(null)
   }
 
-  const scale = info ? Math.min(1, 520 / info.w) : 1
+  // Escala base para caber + zoom del usuario (para recortes precisos).
+  const baseScale = info ? Math.min(1, 520 / info.w) : 1
+  const scale = baseScale * zoom
 
   return (
     <div className="fixed inset-0 z-[1600] flex items-center justify-center bg-black/60 p-6" onClick={onClose}>
@@ -120,6 +123,15 @@ export function RegionPickerModal({ iconId, current, onClose, onPick }: Props): 
               className="w-14 rounded border border-surface-border bg-surface-2 px-1.5 py-1 text-xs text-slate-100 focus:outline-none"
             />
           )}
+          <div className="ml-2 flex items-center gap-1 rounded-md border border-surface-border px-1">
+            <button type="button" onClick={() => setZoom((z) => Math.max(0.25, +(z - 0.25).toFixed(2)))} title="Alejar" className="p-1 text-slate-300 hover:text-accent">
+              <ZoomOut size={13} />
+            </button>
+            <span className="w-9 text-center text-[11px] text-slate-400">{Math.round(zoom * 100)}%</span>
+            <button type="button" onClick={() => setZoom((z) => Math.min(8, +(z + 0.25).toFixed(2)))} title="Acercar" className="p-1 text-slate-300 hover:text-accent">
+              <ZoomIn size={13} />
+            </button>
+          </div>
           <button type="button" onClick={onClose} className="ml-auto rounded p-1 text-slate-400 hover:bg-surface-2" aria-label="Cerrar">
             <X size={16} />
           </button>

@@ -91,6 +91,7 @@ export function buildEntityData(
   lng: number
 ): Record<string, unknown> {
   if (gameType === 'shop') return buildShopData(entity, lat, lng)
+  if (gameType === 'item') return buildItemData(entity, lat, lng)
   return {
     ...entity.properties,
     id: entity.worldId,
@@ -98,5 +99,28 @@ export function buildEntityData(
     nombre: entity.name,
     pos: [lat, lng],
     activo: entity.enabled
+  }
+}
+
+/**
+ * Blob `data` de un OBJETO del mapa (type item). El juego lo dibuja con
+ * `_crearMarcadorObjeto`, que necesita `pos` y `items:[{id,cantidad}]`. Se
+ * incluye `icono` y `nombre` para que se vea aunque el id no esté en el catálogo
+ * local del juego (render de respaldo).
+ */
+export function buildItemData(entity: PayloadEntity, lat: number, lng: number): Record<string, unknown> {
+  const obj = (entity.properties?.object ?? {}) as Record<string, unknown>
+  const itemId = str(obj.itemId as string, '') || slug(entity.name) || entity.worldId
+  const cantidad = Math.max(1, Math.round(num(obj.cantidad, 1)))
+  return {
+    id: entity.worldId,
+    schemaVersion: WORLD_SCHEMA_VERSION,
+    nombre: entity.name,
+    icono: str(obj.icono as string, '📦'),
+    pos: [lat, lng],
+    activo: entity.enabled,
+    cantidad,
+    itemId: String(itemId),
+    items: [{ id: String(itemId), cantidad }]
   }
 }
