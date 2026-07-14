@@ -1,9 +1,9 @@
 name: Compilar instalador Windows
 
-# Compila el .exe en un runner Windows de GitHub.
-# - Manualmente: pestaña Actions ▸ "Compilar instalador Windows" ▸ Run workflow
-#   (elige la rama claude/kingdom-gps-editor-setup-7i6utj para incluir lo último).
-# - Al publicar un tag vX.Y.Z: además crea una Release con el .exe adjunto.
+# Compila el .exe en un runner Windows y PUBLICA una Release en GitHub con el
+# instalador + latest.yml para que el botón "Actualizar" del editor descargue y
+# actualice solo (electron-updater). El token de Actions (GITHUB_TOKEN) sí puede
+# crear tags/releases, así que no hace falta empujar tags a mano.
 on:
   workflow_dispatch:
   push:
@@ -29,19 +29,23 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      - name: Compilar (typecheck + bundle + instalador NSIS)
-        run: npm run build
+      - name: Typecheck + bundle (main/preload/renderer)
+        run: |
+          npx tsc --noEmit -p tsconfig.node.json
+          npx tsc --noEmit -p tsconfig.web.json
+          npx electron-vite build
 
-      - name: Subir instalador como artefacto
+      - name: Compilar instalador y PUBLICAR Release (auto-update)
+        # electron-builder crea el .exe, genera latest.yml y publica la Release
+        # vX.Y.Z (releaseType: release en electron-builder.yml). electron-updater
+        # la encuentra y el botón "Actualizar" descarga e instala.
+        run: npx electron-builder --win --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Subir instalador como artefacto (respaldo)
         uses: actions/upload-artifact@v4
         with:
           name: KingdomGPS-Editor-Windows
           path: dist/*.exe
           if-no-files-found: error
-
-      - name: Publicar Release con el instalador (solo en tags)
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*.exe
-          generate_release_notes: true
