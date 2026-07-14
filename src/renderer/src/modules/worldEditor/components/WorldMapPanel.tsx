@@ -26,6 +26,7 @@ import { ZonesPanel } from './ZonesPanel'
 import { EntityInspector } from './EntityInspector'
 import { MapContextMenu, type MapMenuContext } from './MapContextMenu'
 import { SyncStatusMenu } from './SyncStatusMenu'
+import { EntityPickerModal, typeHasCatalog } from './EntityPickerModal'
 import { OsmImportModal } from './OsmImportModal'
 import { ShopModal } from './ShopModal'
 import { NpcModal } from './NpcModal'
@@ -350,6 +351,8 @@ export function WorldMapPanel(): JSX.Element {
     entity: WorldEntityUI
     screen: { x: number; y: number }
   } | null>(null)
+  // Selector de catálogo (Objeto/Enemigo) al crear una entidad.
+  const [picker, setPicker] = useState<{ type: WorldEntityType; position: Position } | null>(null)
   const [osmZone, setOsmZone] = useState<WorldZone | null>(null)
   // Entidad cuya interacción (tienda/NPC) está abierta en modal.
   const [shopEntity, setShopEntity] = useState<WorldEntityUI | null>(null)
@@ -397,16 +400,30 @@ export function WorldMapPanel(): JSX.Element {
     ]).finally(() => setLoading(false))
   }, [loadEntities, setLoading])
 
-  const createEntityAt = async (type: WorldEntityType, position: Position): Promise<void> => {
+  const createEntityAt = async (
+    type: WorldEntityType,
+    position: Position,
+    pick?: { entityId: number; name: string; properties: Record<string, unknown> }
+  ): Promise<void> => {
     const entity = await WorldEditorService.createEntity({
       entityType: type,
-      entityId: null,
-      name: `${TYPE_NAME[type] ?? type} nuevo`,
+      entityId: pick?.entityId ?? null,
+      name: pick?.name ?? `${TYPE_NAME[type] ?? type} nuevo`,
       position,
-      properties: {}
+      properties: pick?.properties ?? {}
     })
     addEntity({ ...entity, isSelected: false, isEditing: false })
     selectEntity(entity.worldId)
+  }
+
+  // Al crear una entidad: si el tipo tiene catálogo (Objeto/Enemigo), abrir el
+  // selector para elegir cuál colocar; si no, crear el pin en blanco.
+  const handleCreateEntity = (type: WorldEntityType, position: Position): void => {
+    if (typeHasCatalog(type)) {
+      setPicker({ type, position })
+    } else {
+      void createEntityAt(type, position)
+    }
   }
 
   const handleLeftClick = (position: Position): void => {
@@ -1168,7 +1185,7 @@ export function WorldMapPanel(): JSX.Element {
               clipboard={clipboard}
               onClose={() => setContextMenu(null)}
               onCreatePin={(position) => void createEntityAt(WorldEntityType.Marker, position)}
-              onCreateEntity={(type, position) => void createEntityAt(type, position)}
+              onCreateEntity={(type, position) => handleCreateEntity(type, position)}
               onStartZone={(position) => startZone(position)}
               onStartRoute={(position) => startRoute(position)}
               onImportOsm={(zone) => setOsmZone(zone)}
@@ -1196,6 +1213,18 @@ export function WorldMapPanel(): JSX.Element {
               onClose={() => setStatusMenu(null)}
               onPublish={(worldId) => void handlePublishEntity(worldId)}
               onShowMessage={(message) => flash(message)}
+            />
+          )}
+
+          {picker && (
+            <EntityPickerModal
+              type={picker.type}
+              onClose={() => setPicker(null)}
+              onPick={(picked) => {
+                const p = picker
+                setPicker(null)
+                void createEntityAt(p.type, p.position, picked)
+              }}
             />
           )}
 
