@@ -143,4 +143,27 @@ export function registerSystemExtraHandlers(): void {
       return { ok: false, message: friendly(error, 'No se pudo eliminar el jugador.') }
     }
   })
+
+  /** Revive a un jugador y lo deja con vida/hambre al máximo. */
+  ipcMain.handle('players:revive', async (_event, id: string): Promise<PlayerAdminResult> => {
+    try {
+      await apiFetch('/api/player/admin-jugador-revivir', { method: 'POST', body: { id } })
+      return { ok: true, message: 'Jugador revivido con vida al máximo.' }
+    } catch (error) {
+      return { ok: false, message: friendly(error, 'No se pudo revivir el jugador.') }
+    }
+  })
+
+  /** Da (cantidad>0) o quita (cantidad<0) objetos del inventario de un jugador. */
+  ipcMain.handle(
+    'players:giveItem',
+    async (_event, id: string, itemId: string, cantidad: number): Promise<PlayerAdminResult> => {
+      try {
+        await apiFetch('/api/player/admin-jugador-item', { method: 'POST', body: { id, itemId, cantidad } })
+        return { ok: true, message: cantidad >= 0 ? 'Objeto agregado.' : 'Objeto quitado.' }
+      } catch (error) {
+        return { ok: false, message: friendly(error, 'No se pudo cambiar el inventario.') }
+      }
+    }
+  )
 }

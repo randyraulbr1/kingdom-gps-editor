@@ -97,6 +97,49 @@ export class IconLibraryService {
     return result
   }
 
+  /** Importa archivos de imagen sueltos (PNG/JPG/WEBP) a assets/icons/<category>. */
+  async importFiles(filePaths: string[], category = 'general'): Promise<IconImportResult> {
+    const result: IconImportResult = { imported: 0, skipped: 0, duplicates: 0, errors: [] }
+    const cat = (category || 'general').trim() || 'general'
+    for (const filePath of filePaths) {
+      try {
+        const ext = path.extname(filePath).toLowerCase()
+        if (!SUPPORTED_EXTENSIONS.has(ext)) {
+          result.errors.push({ file: filePath, message: 'Formato no soportado (usa PNG, JPG o WebP)' })
+          continue
+        }
+        const destRelative = [cat, path.basename(filePath)].join('/')
+        const destAbsolute = path.join(this.assetsIconsDir, cat, path.basename(filePath))
+
+        if (await this.repository.findByRelativePath(destRelative)) {
+          result.skipped++
+          continue
+        }
+        await fs.mkdir(path.dirname(destAbsolute), { recursive: true })
+        await fs.copyFile(filePath, destAbsolute)
+
+        const hash = await hashFile(destAbsolute)
+        const metadata = await sharp(destAbsolute).metadata()
+        const duplicate = await this.repository.findByHash(hash)
+        await this.repository.create({
+          fileName: path.basename(destAbsolute),
+          relativePath: destRelative,
+          category: cat,
+          hash,
+          width: metadata.width ?? 0,
+          height: metadata.height ?? 0,
+          format: extensionToFormat(ext),
+          duplicateOfId: duplicate?.id ?? null
+        })
+        if (duplicate) result.duplicates++
+        result.imported++
+      } catch (error) {
+        result.errors.push({ file: filePath, message: (error as Error).message })
+      }
+    }
+    return result
+  }
+
   /** Reconciles the DB index with whatever is already on disk under assets/icons - run once at project open. */
   async rescan(): Promise<IconImportResult> {
     await fs.mkdir(this.assetsIconsDir, { recursive: true })

@@ -57,6 +57,7 @@ export interface KingdomGpsApi {
     list(query: IconQuery): Promise<{ items: IconRecord[]; total: number }>
     get(iconId: number): Promise<IconRecord | undefined>
     importFolder(sourceDir: string): Promise<IconImportResult>
+    importFiles(filePaths: string[], category?: string): Promise<IconImportResult>
     toggleFavorite(iconId: number): Promise<IconRecord>
     setTags(iconId: number, tags: string[]): Promise<IconRecord>
     resize(request: IconResizeRequest): Promise<IconRecord>
@@ -210,9 +211,15 @@ export interface KingdomGpsApi {
     ban(id: string, ban: boolean): Promise<PlayerAdminResult>
     /** Elimina un jugador (queda en papelera recuperable). */
     delete(id: string): Promise<PlayerAdminResult>
+    /** Revive al jugador y lo deja con vida/hambre al máximo. */
+    revive(id: string): Promise<PlayerAdminResult>
+    /** Da (cantidad>0) o quita (cantidad<0) objetos del inventario. */
+    giveItem(id: string, itemId: string, cantidad: number): Promise<PlayerAdminResult>
   }
   dialog: {
     pickFolder(): Promise<string | null>
+    /** Elige imágenes sueltas (PNG/JPG/WebP). Devuelve sus rutas. */
+    pickImages(): Promise<string[]>
   }
   windowControls: {
     minimize(): Promise<void>

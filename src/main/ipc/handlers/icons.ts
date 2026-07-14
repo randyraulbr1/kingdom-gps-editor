@@ -23,6 +23,10 @@ export function registerIconHandlers(): void {
 
   ipcMain.handle('icons:importFolder', (_event, sourceDir: string) => getServices().service.importFolder(sourceDir))
 
+  ipcMain.handle('icons:importFiles', (_event, filePaths: string[], category?: string) =>
+    getServices().service.importFiles(filePaths, category)
+  )
+
   ipcMain.handle('icons:toggleFavorite', async (_event, iconId: number) => {
     const { repository, commandBus } = getServices()
     const before = await repository.get(iconId)

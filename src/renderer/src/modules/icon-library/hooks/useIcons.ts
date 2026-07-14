@@ -62,5 +62,14 @@ export function useIcons() {
     return result
   }, [reload, setCategories])
 
-  return { reload, toggleFavorite, setTagsFor, importFolder }
+  const importFiles = useCallback(async () => {
+    const files = await window.api.dialog.pickImages()
+    if (!files || files.length === 0) return null
+    const result = await window.api.icons.importFiles(files)
+    await reload()
+    window.api.icons.listCategories().then(setCategories)
+    return result
+  }, [reload, setCategories])
+
+  return { reload, toggleFavorite, setTagsFor, importFolder, importFiles }
 }

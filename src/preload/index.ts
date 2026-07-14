@@ -20,6 +20,7 @@ const api: KingdomGpsApi = {
     list: (query) => ipcRenderer.invoke('icons:list', query),
     get: (iconId) => ipcRenderer.invoke('icons:get', iconId),
     importFolder: (sourceDir) => ipcRenderer.invoke('icons:importFolder', sourceDir),
+    importFiles: (filePaths, category) => ipcRenderer.invoke('icons:importFiles', filePaths, category),
     toggleFavorite: (iconId) => ipcRenderer.invoke('icons:toggleFavorite', iconId),
     setTags: (iconId, tags) => ipcRenderer.invoke('icons:setTags', iconId, tags),
     resize: (request) => ipcRenderer.invoke('icons:resize', request),
@@ -133,10 +134,13 @@ const api: KingdomGpsApi = {
     edit: (input) => ipcRenderer.invoke('players:edit', input),
     setPassword: (id, password) => ipcRenderer.invoke('players:setPassword', id, password),
     ban: (id, ban) => ipcRenderer.invoke('players:ban', id, ban),
-    delete: (id) => ipcRenderer.invoke('players:delete', id)
+    delete: (id) => ipcRenderer.invoke('players:delete', id),
+    revive: (id) => ipcRenderer.invoke('players:revive', id),
+    giveItem: (id, itemId, cantidad) => ipcRenderer.invoke('players:giveItem', id, itemId, cantidad)
   },
   dialog: {
-    pickFolder: () => ipcRenderer.invoke('dialog:pickFolder')
+    pickFolder: () => ipcRenderer.invoke('dialog:pickFolder'),
+    pickImages: () => ipcRenderer.invoke('dialog:pickImages')
   },
   windowControls: {
     minimize: () => ipcRenderer.invoke('window:minimize'),

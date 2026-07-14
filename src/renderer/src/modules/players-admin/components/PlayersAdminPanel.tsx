@@ -141,10 +141,17 @@ export function PlayersAdminPanel(): JSX.Element {
 
       {/* Lista de jugadores */}
       <section className="mt-4 rounded-lg border border-surface-border bg-surface-1 p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-slate-100">
-            Jugadores <span className="text-slate-500">({list.length})</span>
-          </h2>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-medium text-slate-100">Jugadores</h2>
+            <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] text-slate-300">{list.length} usuarios</span>
+            <span className="rounded bg-green-900/30 px-1.5 py-0.5 text-[10px] text-green-300">
+              {list.filter((p) => p.conectado).length} online
+            </span>
+            <span className="rounded bg-red-900/30 px-1.5 py-0.5 text-[10px] text-red-300">
+              {list.filter((p) => p.muerto).length} muertos
+            </span>
+          </div>
           <button
             type="button"
             onClick={() => void refresh()}
@@ -257,6 +264,9 @@ function PlayerRow({
   const [newPass, setNewPass] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [goldAmount, setGoldAmount] = useState('100')
+  const [itemId, setItemId] = useState('')
+  const [itemQty, setItemQty] = useState('1')
 
   // Solo dígitos (evita el spinner de type=number y caracteres raros).
   const onlyInt = (v: string): string => v.replace(/[^0-9]/g, '')
@@ -289,6 +299,36 @@ function PlayerRow({
   const toggleBan = async (): Promise<void> => {
     setBusy(true)
     const result = await api.ban(player.id, !isBanned(player))
+    setBusy(false)
+    flash(result.ok, result.message)
+    if (result.ok) onChanged()
+  }
+
+  const revive = async (): Promise<void> => {
+    setBusy(true)
+    const result = await api.revive(player.id)
+    setBusy(false)
+    flash(result.ok, result.message)
+    if (result.ok) onChanged()
+  }
+
+  const changeGold = async (delta: number): Promise<void> => {
+    const amount = Math.max(0, Number(goldAmount.replace(/[^0-9]/g, '')) || 0) * (delta < 0 ? -1 : 1)
+    if (amount === 0) return
+    const nuevo = Math.max(0, (player.dinero ?? 0) + amount)
+    setBusy(true)
+    const result = await api.edit({ id: player.id, dinero: nuevo })
+    setBusy(false)
+    flash(result.ok, result.ok ? `Oro: ${player.dinero ?? 0} → ${nuevo}` : result.message)
+    if (result.ok) onChanged()
+  }
+
+  const changeItem = async (sign: number): Promise<void> => {
+    const id = itemId.trim()
+    if (!id) return flash(false, 'Escribe el id del objeto (ej. sardina).')
+    const qty = (Math.max(1, Number(itemQty.replace(/[^0-9]/g, '')) || 1)) * sign
+    setBusy(true)
+    const result = await api.giveItem(player.id, id, qty)
     setBusy(false)
     flash(result.ok, result.message)
     if (result.ok) onChanged()
@@ -356,6 +396,51 @@ function PlayerRow({
               >
                 Guardar cambios
               </button>
+
+              {/* Acciones rápidas: revivir, oro, objetos */}
+              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-surface-border pt-3">
+                <button
+                  type="button"
+                  onClick={() => void revive()}
+                  disabled={busy}
+                  className="flex items-center gap-1.5 rounded-md border border-green-700/50 px-2.5 py-1.5 text-xs text-green-300 hover:bg-green-900/20 disabled:opacity-50"
+                >
+                  <Heart size={13} /> Revivir / Vida máx
+                </button>
+
+                <span className="flex items-center gap-1 rounded-md border border-surface-border px-1.5 py-1">
+                  <Coins size={12} className="text-amber-400" />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={goldAmount}
+                    onChange={(e) => setGoldAmount(e.target.value.replace(/[^0-9]/g, ''))}
+                    className="w-16 rounded bg-surface-1 px-1.5 py-0.5 text-xs text-slate-100 focus:outline-none"
+                  />
+                  <button type="button" onClick={() => void changeGold(1)} disabled={busy} className="rounded bg-surface-1 px-1.5 text-sm text-green-400 hover:bg-surface-2 disabled:opacity-50">+</button>
+                  <button type="button" onClick={() => void changeGold(-1)} disabled={busy} className="rounded bg-surface-1 px-1.5 text-sm text-red-400 hover:bg-surface-2 disabled:opacity-50">−</button>
+                </span>
+
+                <span className="flex items-center gap-1 rounded-md border border-surface-border px-1.5 py-1">
+                  <Backpack size={12} className="text-slate-400" />
+                  <input
+                    type="text"
+                    value={itemId}
+                    onChange={(e) => setItemId(e.target.value)}
+                    placeholder="id objeto"
+                    className="w-24 rounded bg-surface-1 px-1.5 py-0.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none"
+                  />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={itemQty}
+                    onChange={(e) => setItemQty(e.target.value.replace(/[^0-9]/g, ''))}
+                    className="w-10 rounded bg-surface-1 px-1.5 py-0.5 text-xs text-slate-100 focus:outline-none"
+                  />
+                  <button type="button" onClick={() => void changeItem(1)} disabled={busy} className="rounded bg-surface-1 px-1.5 text-sm text-green-400 hover:bg-surface-2 disabled:opacity-50">+</button>
+                  <button type="button" onClick={() => void changeItem(-1)} disabled={busy} className="rounded bg-surface-1 px-1.5 text-sm text-red-400 hover:bg-surface-2 disabled:opacity-50">−</button>
+                </span>
+              </div>
 
               {/* Contraseña + acciones */}
               <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-surface-border pt-3">

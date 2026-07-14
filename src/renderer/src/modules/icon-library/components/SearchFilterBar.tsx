@@ -1,4 +1,4 @@
-import { Search, Star, Copy, FolderInput, Loader2 } from 'lucide-react'
+import { Search, Star, Copy, FolderInput, ImagePlus, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useIconLibraryStore } from '../store/iconLibraryStore'
 import { useIcons } from '../hooks/useIcons'
@@ -7,13 +7,22 @@ export function SearchFilterBar(): JSX.Element {
   const query = useIconLibraryStore((s) => s.query)
   const setQuery = useIconLibraryStore((s) => s.setQuery)
   const total = useIconLibraryStore((s) => s.total)
-  const { importFolder } = useIcons()
+  const { importFolder, importFiles } = useIcons()
   const [importing, setImporting] = useState(false)
 
   const handleImport = async (): Promise<void> => {
     setImporting(true)
     try {
       await importFolder()
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const handleImportFiles = async (): Promise<void> => {
+    setImporting(true)
+    try {
+      await importFiles()
     } finally {
       setImporting(false)
     }
@@ -59,9 +68,19 @@ export function SearchFilterBar(): JSX.Element {
         <span className="text-xs text-slate-500">{total} iconos</span>
         <button
           type="button"
+          onClick={handleImportFiles}
+          disabled={importing}
+          title="Importar imágenes sueltas (PNG, JPG, WebP)"
+          className="flex items-center gap-1 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-60"
+        >
+          {importing ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
+          Importar PNG
+        </button>
+        <button
+          type="button"
           onClick={handleImport}
           disabled={importing}
-          className="flex items-center gap-1 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-60"
+          className="flex items-center gap-1 rounded-md border border-surface-border px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-surface-2 disabled:opacity-60"
         >
           {importing ? <Loader2 size={14} className="animate-spin" /> : <FolderInput size={14} />}
           Importar carpeta
