@@ -65,7 +65,12 @@ function SingleItemInspector({
 }): JSX.Element {
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-      <IconField iconId={item.iconId} onChange={(iconId) => onCommit({ iconId })} />
+      <IconField
+        iconId={item.iconId}
+        onChange={(iconId) => onCommit({ iconId })}
+        iconRef={item.iconRef}
+        onChangeRef={(iconRef) => onCommit({ iconRef })}
+      />
 
       <TextField label="Nombre" value={item.name} onCommit={(name) => onCommit({ name })} />
       <TextAreaField label="Descripción" value={item.description} onCommit={(description) => onCommit({ description })} />

@@ -8,6 +8,7 @@ import * as m006 from './migrations/006_weapons'
 import * as m007 from './migrations/007_armor'
 import * as m008 from './migrations/008_enemy_routes'
 import * as m009 from './migrations/009_monsters'
+import * as m010 from './migrations/010_item_icon_ref'
 
 interface Migration {
   id: string
@@ -15,7 +16,7 @@ interface Migration {
 }
 
 /** New migrations are appended here, never edited after being released - see README. */
-const MIGRATIONS: Migration[] = [m001, m002, m003, m004, m005, m006, m007, m008, m009]
+const MIGRATIONS: Migration[] = [m001, m002, m003, m004, m005, m006, m007, m008, m009, m010]
 
 function splitStatements(sql: string): string[] {
   return sql

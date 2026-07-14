@@ -63,6 +63,7 @@ export function normalizeItemInput(raw: unknown): ItemInput {
     category: category as ItemInput['category'],
     rarity: rarity as ItemInput['rarity'],
     iconId: numOrNull(obj.iconId),
+    iconRef: null,
     value: Math.max(0, num(obj.value, 0)),
     weight: Math.max(0, num(obj.weight, 0)),
     stackSize: Math.max(1, Math.round(num(obj.stackSize, 1))),

@@ -16,7 +16,8 @@ describe('migrationRunner', () => {
       '006_weapons',
       '007_armor',
       '008_enemy_routes',
-      '009_monsters'
+      '009_monsters',
+      '010_item_icon_ref'
     ])
 
     const secondRun = await runMigrations(client)

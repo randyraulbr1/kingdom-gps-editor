@@ -15,6 +15,14 @@ export interface ItemBonus {
   value: number
 }
 
+/** Recorte del icono: una región (x,y,width,height) dentro de la imagen de iconId. */
+export interface IconRegion {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export interface Item {
   id: number
   name: string
@@ -22,6 +30,8 @@ export interface Item {
   category: ItemCategory
   rarity: ItemRarity
   iconId: number | null
+  /** Recorte del icono: región dentro de la imagen de iconId. null = imagen entera. */
+  iconRef: IconRegion | null
   value: number
   weight: number
   stackSize: number
@@ -73,6 +83,7 @@ export function createEmptyItemInput(): ItemInput {
     category: 'misc',
     rarity: 'common',
     iconId: null,
+    iconRef: null,
     value: 0,
     weight: 0,
     stackSize: 1,

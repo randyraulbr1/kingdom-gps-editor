@@ -49,6 +49,7 @@ export interface ItemsTable {
   category: string
   rarity: string
   icon_id: number | null
+  icon_ref: string | null
   value: number
   weight: number
   stack_size: number

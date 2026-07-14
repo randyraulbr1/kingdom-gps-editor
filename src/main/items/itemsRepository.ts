@@ -9,6 +9,7 @@ interface ItemRow {
   category: string
   rarity: string
   icon_id: number | null
+  icon_ref: string | null
   value: number
   weight: number
   stack_size: number
@@ -36,6 +37,7 @@ function toItem(row: ItemRow): Item {
     category: row.category as Item['category'],
     rarity: row.rarity as Item['rarity'],
     iconId: row.icon_id,
+    iconRef: row.icon_ref ? (JSON.parse(row.icon_ref) as Item['iconRef']) : null,
     value: row.value,
     weight: row.weight,
     stackSize: row.stack_size,
@@ -64,6 +66,7 @@ function toRowPatch(input: Partial<ItemInput>): Record<string, unknown> {
   if (input.category !== undefined) row.category = input.category
   if (input.rarity !== undefined) row.rarity = input.rarity
   if (input.iconId !== undefined) row.icon_id = input.iconId
+  if (input.iconRef !== undefined) row.icon_ref = input.iconRef ? JSON.stringify(input.iconRef) : null
   if (input.value !== undefined) row.value = input.value
   if (input.weight !== undefined) row.weight = input.weight
   if (input.stackSize !== undefined) row.stack_size = input.stackSize
